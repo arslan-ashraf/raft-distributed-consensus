@@ -17,6 +17,7 @@ function handle_write_to_follower(CURRENT_NODE_ADDRESS, CURRENT_NODE_STATE, data
 		append_writes_to_log([line_to_append], log_file_path, DATA_SIZE_CONSTANTS)
 
 		/////////////////// FOLLOWER writes to hash table here ////////////////////
+		// write_to_hash_table([line_to_append], CURRENT_NODE_ADDRESS, DATA_SIZE_CONSTANTS)
 
 		payload.message_type = "WRITE_SUCCESS_ON_FOLLOWER"
 	} else {
