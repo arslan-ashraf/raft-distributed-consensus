@@ -26,13 +26,13 @@ function read_last_line(fd, buffer_size){
 // get the log_index and term number out of the line in the log
 function get_log_index_and_term(line, DATA_SIZE_CONSTANTS){
 
-	let log_index_start = 1
-	let log_index_end = log_index_start + DATA_SIZE_CONSTANTS.log_index_size
-	let _log_index = Number(line.substring(log_index_start, log_index_end).trim())
+	let log_start_index = 1
+	let log_end_index = log_start_index + DATA_SIZE_CONSTANTS.log_index_size
+	let _log_index = Number(line.substring(log_start_index, log_end_index).trim())
 
-	let term_index_start = log_index_end
-	let term_index_end = term_index_start + DATA_SIZE_CONSTANTS.term_size
-	let _term = Number(line.substring(term_index_start, term_index_end).trim())
+	let term_start_index = log_end_index
+	let term_end_index = term_start_index + DATA_SIZE_CONSTANTS.term_size
+	let _term = Number(line.substring(term_start_index, term_end_index).trim())
 	console.log(`get_log_index_and_term(): _log_index: ${_log_index}, _term: ${_term}`)
 	return [_log_index, _term]
 }
