@@ -11,7 +11,7 @@ const {
 let { get_log_index_and_term } = require("./read_end_of_log")
 
 // only the leader calls this function and CURRENT_NODE_ADDRESS is the leader's address
-async function replicate_write_to_followers(
+async function write_and_replicate_write_to_followers(
 	PEERS, CURRENT_NODE_ADDRESS, data_object, QUORUM, server_socket, payload, log_last_index, 
 	leader_log_file_path, leader_log_file_descriptor, buffer_size, DATA_SIZE_CONSTANTS
 ){
@@ -21,7 +21,7 @@ async function replicate_write_to_followers(
 
 	await Promise.allSettled(write_promises).then((all_promise_results) => {
 
-		console.log(`replicate_write_to_followers(): all_promise_results:`, all_promise_results)
+		console.log(`write_and_replicate_write_to_followers(): all_promise_results:`, all_promise_results)
 		all_promise_results.map((promise_result) => {
 			let lagging_followers = []
 			if (promise_result.status == "rejected" && 
@@ -40,20 +40,20 @@ async function replicate_write_to_followers(
 					leader_log_file_descriptor, data_object, DATA_SIZE_CONSTANTS, buffer_size
 				)
 				replicate_log_successes.then((promise_result) => {
-					console.log(`replicate_write_to_followers(): After replicating to lagging followers, promise_result: at ${get_timestamp()}\n`, promise_result)
+					console.log(`write_and_replicate_write_to_followers(): After replicating to lagging followers, promise_result: at ${get_timestamp()}\n`, promise_result)
 					write_successes = write_successes.concat(replicate_log_successes)
-					console.log(`replicate_write_to_followers(): After replicating to lagging followers, write_successes: ${write_successes} at ${get_timestamp()}`)
+					console.log(`write_and_replicate_write_to_followers(): After replicating to lagging followers, write_successes: ${write_successes} at ${get_timestamp()}`)
 				}).catch((error) => {
-					console.log(`replicate_write_to_followers(): After replicating to lagging followers, error: at ${get_timestamp()}\n`, error)
+					console.log(`write_and_replicate_write_to_followers(): After replicating to lagging followers, error: at ${get_timestamp()}\n`, error)
 				})
 			}
 		})
 
 	}).catch((error) => {
-		console.log(`replicate_write_to_followers(): Promise.allSettled() failed with error at ${get_timestamp()}\n`, error)
+		console.log(`write_and_replicate_write_to_followers(): Promise.allSettled() failed with error at ${get_timestamp()}\n`, error)
 	})
 
-	console.log(`replicate_write_to_followers(): write_successes:`, write_successes)
+	console.log(`write_and_replicate_write_to_followers(): write_successes:`, write_successes)
 	
 	let num_writes_succeeded = 0
 
@@ -66,7 +66,7 @@ async function replicate_write_to_followers(
 		payload.message_type = "WRITE_SUCCESS"
 		data_object.log_index
 		append_writes_to_log([data_object], leader_log_file_path, DATA_SIZE_CONSTANTS)
-		console.log(`QUORUM satisfied: leader's log after write:`)
+		console.log(`!!!!!!!!!!! QUORUM satisfied: leader has written to its log !!!!!!!!!!!`)
 	} else {
 		payload.message_type = "WRITE_FAILED"
 	}
@@ -352,4 +352,4 @@ function catchup_follower_helper(follower_address, followers_log_last_index, LEA
 	return client_promise
 }
 
-module.exports = { replicate_write_to_followers, catchup_followers_log_at_startup }
+module.exports = { write_and_replicate_write_to_followers, catchup_followers_log_at_startup }

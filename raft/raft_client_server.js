@@ -19,7 +19,7 @@ const {
 const send_heartbeat_to_followers = require("./raft-leader/send_heartbeat")
 
 const { 
-	replicate_write_to_followers, 
+	write_and_replicate_write_to_followers, 
 	catchup_followers_log_at_startup 
 } = require("./raft-log-replication/log_replication")
 
@@ -175,7 +175,7 @@ server.on("connection", (server_socket) => {
 				let data_object = { "log_index": log_last_index, "term": term, "key": data.key, "value": data.value }
 
 				console.log(`%%%%%%%% leaders term: ${term} $$$$$$$$$$$`)
-				replicate_write_to_followers(
+				write_and_replicate_write_to_followers(
 					PEERS, CURRENT_NODE_ADDRESS, data_object, QUORUM, server_socket, payload, 
 					log_last_index, log_file_path, log_file_descriptor, buffer_size, DATA_SIZE_CONSTANTS
 				)
