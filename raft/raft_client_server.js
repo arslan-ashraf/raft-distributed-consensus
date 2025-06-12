@@ -200,7 +200,7 @@ server.on("connection", (server_socket) => {
 
 			console.log(`${CURRENT_NODE_STATE} ${CURRENT_NODE_ADDRESS} received a REPLICATE_WRITES_TO_LAGGING_FOLLOWER message from LEADER ${data.sender} at ${get_timestamp()}`)
 	
-			let handled_writes = handle_writes_to_lagging_followers(CURRENT_NODE_ADDRESS, data, log_last_index, log_file_path, buffer_size)			
+			let handled_writes = handle_writes_to_lagging_followers(CURRENT_NODE_ADDRESS, data.missing_log_entries, log_file_path)
 			let bool_writes_succeeded = handled_writes[0]
 			
 			let payload = { "sender": CURRENT_NODE_ADDRESS }

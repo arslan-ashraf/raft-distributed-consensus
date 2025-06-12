@@ -9,9 +9,15 @@ function handle_write_to_follower(CURRENT_NODE_ADDRESS, CURRENT_NODE_STATE, data
 	
 	if (followers_log_last_index == (leaders_log_last_index - 1)){
 		console.log(`---- Log indexes match - ${CURRENT_NODE_STATE} ${CURRENT_NODE_ADDRESS} accepts the write from LEADER ${data.sender} at ${get_timestamp()} ----`)
+		
 		const data_to_write = { "log_index": data.log_index, "term": data.term,
 								"key": data.key, "value": data.value }
-		append_writes_to_log([data_to_write], log_file_path, DATA_SIZE_CONSTANTS)
+
+		const line_to_append = assemble_write(data_to_write, DATA_SIZE_CONSTANTS)								
+		append_writes_to_log([line_to_append], log_file_path, DATA_SIZE_CONSTANTS)
+
+		/////////////////// FOLLOWER writes to hash table here ////////////////////
+
 		payload.message_type = "WRITE_SUCCESS_ON_FOLLOWER"
 	} else {
 		payload.message_type = "WRITE_FAILURE_ON_FOLLOWER"
@@ -22,58 +28,34 @@ function handle_write_to_follower(CURRENT_NODE_ADDRESS, CURRENT_NODE_STATE, data
 
 
 // followers call this function
-function handle_writes_to_lagging_followers(CURRENT_NODE_ADDRESS, data, follower_log_length, follower_log_file_path, buffer_size){
-
-	let missing_entries = data.missing_log_entries
+function handle_writes_to_lagging_followers(CURRENT_NODE_ADDRESS, missing_entries, follower_log_file_path){
 
 	console.log(`handle_writes_to_lagging_followers(): FOLLOWER ${CURRENT_NODE_ADDRESS} is missing the following entries at ${get_timestamp()}:\n`, missing_entries)
 	console.log(`handle_writes_to_lagging_followers(): follower_log_length: ${follower_log_length} - data.num_missing_entries: ${data.num_missing_entries}`)
 	
-	const follower_log_write_stream = fs.createWriteStream(follower_log_file_path, { flags: "a"})
-	for (let i = 0; i < missing_entries.length; i++){	
-		follower_log_write_stream.write(missing_entries[i])
-	}
-	follower_log_write_stream.close()
-
-	follower_log_write_stream.on("error", (error) => {
-		console.log(`handle_writes_to_lagging_followers(): failed to write missing data to FOLLOWER with error object: at ${get_timestamp()}\n`, error)
-		return [false, missing_entries[missing_entries.length - 1]]
-	})
+	append_writes_to_log(missing_entries, follower_log_file_path)
+	
+	/////////////////// LAGGING FOLLOWER writes to hash table here ////////////////////
 
 	console.log(`handle_writes_to_lagging_followers(): follower confirming that writes did not succeed`)
 	return [true, missing_entries[missing_entries.length - 1]]
 }
 
 
-function append_writes_to_log(data_entries, log_file_path, DATA_SIZE_CONSTANTS){
+function append_writes_to_log(data_entries, log_file_path){
 	
-	const file = fs.createWriteStream(log_file_path, { flags: "a"})
+	const write_stream = fs.createWriteStream(log_file_path, { flags: "a"})
 	
 	for (let i = 0; i < data_entries.length; i++){	
-		
-		let _log_index = String(data_entries[i].log_index)
-		let _log_index_num_spaces = DATA_SIZE_CONSTANTS.log_index_size - _log_index.length
-		_log_index += " ".repeat(_log_index_num_spaces)
-		
-		let _term = String(data_entries[i].term)
-		let _term_num_spaces = DATA_SIZE_CONSTANTS.term_size - _term.length
-		_term += " ".repeat(_term_num_spaces)
-
-		let _key = String(data_entries[i].key)
-		let _key_num_spaces = DATA_SIZE_CONSTANTS.key_size - _key.length
-		_key += " ".repeat(_key_num_spaces)
-
-		let _value = String(data_entries[i].value)
-		let _value_num_spaces = DATA_SIZE_CONSTANTS.value_size - _value.length
-		_value += " ".repeat(_value_num_spaces)
-
-		let data = "\n" + _log_index + _term + _key + _value
-
-		file.write(data)
-		
+		write_stream.write(data_entries[i])
 	}
 
-	file.close()
+	write_stream.close()
+
+	write_stream.on("error", (error) => {
+		console.log(`append_writes_to_log(): failed to write data with error object: at ${get_timestamp()}\n`, error)
+	})
+
 }
 
 

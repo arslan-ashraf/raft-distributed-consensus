@@ -63,10 +63,15 @@ async function write_and_replicate_write_to_followers(
 
 	console.log(`-----------> LEADER has received: number of followers who wrote: ${num_writes_succeeded} at ${get_timestamp()}`)
 	if (num_writes_succeeded > (QUORUM - 1)){
-		payload.message_type = "WRITE_SUCCESS"
-		data_object.log_index
-		append_writes_to_log([data_object], leader_log_file_path, DATA_SIZE_CONSTANTS)
+		
+		const line_to_append = assemble_write(data_object, DATA_SIZE_CONSTANTS)
+		append_writes_to_log([line_to_append], leader_log_file_path)
+		
 		console.log(`!!!!!!!!!!! QUORUM satisfied: leader has written to its log !!!!!!!!!!!`)
+		payload.message_type = "WRITE_SUCCESS"
+	
+		/////////////////// LEADER writes to hash table here ////////////////////
+
 	} else {
 		payload.message_type = "WRITE_FAILED"
 	}
@@ -286,12 +291,9 @@ async function catchup_followers_log_at_startup(follower_address, followers_log_
 			let smallest_index_of_missing_entries = log_index_and_term[0]
 
 			if(followers_log_last_index < smallest_index_of_missing_entries){
-				const follower_log_write_stream = fs.createWriteStream(follower_log_file_path, { flags: "a"})
-				for (let i = 0; i < promise_result.length; i++){	
-					follower_log_write_stream.write(promise_result[i])
-				}
-				follower_log_write_stream.close()
+				append_writes_to_log(promise_result, follower_log_file_path)
 			}
+			
 			new_last_line = promise_result[promise_result.length - 1]
 			console.log(`catchup_followers_log_at_startup(): followers log caught up with new_last_line at ${get_timestamp()}\n`, new_last_line)
 		}
