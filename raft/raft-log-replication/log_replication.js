@@ -13,7 +13,7 @@ let { get_log_index_and_term } = require("./read_end_of_log")
 // only the leader calls this function and CURRENT_NODE_ADDRESS is the leader's address
 async function write_and_replicate_write_to_followers(
 	PEERS, CURRENT_NODE_ADDRESS, data_object, QUORUM, server_socket, payload, log_last_index, 
-	leader_log_file_path, leader_log_file_descriptor, data_point_size, DATA_SIZE_CONSTANTS
+	leader_log_file_path, leader_log_file_descriptor, data_point_size, RAFT_LOG_CONSTANTS
 ){
 	
 	let write_successes = []
@@ -37,7 +37,7 @@ async function write_and_replicate_write_to_followers(
 			if (lagging_followers.length > 0){
 				let replicate_log_successes = replicate_writes_to_lagging_followers(
 					lagging_followers, CURRENT_NODE_ADDRESS, log_last_index, 
-					leader_log_file_descriptor, data_object, DATA_SIZE_CONSTANTS, data_point_size
+					leader_log_file_descriptor, data_object, RAFT_LOG_CONSTANTS, data_point_size
 				)
 				replicate_log_successes.then((promise_result) => {
 					console.log(`write_and_replicate_write_to_followers(): After replicating to lagging followers, promise_result: at ${get_timestamp()}\n`, promise_result)
@@ -64,7 +64,7 @@ async function write_and_replicate_write_to_followers(
 	console.log(`-----------> LEADER has received: number of followers who wrote: ${num_writes_succeeded} at ${get_timestamp()}`)
 	if (num_writes_succeeded > (QUORUM - 1)){
 		
-		const line_to_append = assemble_write(data_object, DATA_SIZE_CONSTANTS)
+		const line_to_append = assemble_write(data_object, RAFT_LOG_CONSTANTS)
 		append_writes_to_log([line_to_append], leader_log_file_path)
 		
 		console.log(`!!!!!!!!!!! QUORUM satisfied: leader has written to its log !!!!!!!!!!!`)
@@ -163,12 +163,12 @@ function replicate_write_helper(PEERS, CURRENT_NODE_ADDRESS, data_object, index)
 // then the follower will send its highest log index, letting the leader know
 // how far behind it is, the leader then sends another write to followers that are behind
 // with all of the log entries the lagging follower(s) is missing
-async function replicate_writes_to_lagging_followers(lagging_followers, CURRENT_NODE_ADDRESS, log_last_index, leader_log_file_descriptor, data_object, DATA_SIZE_CONSTANTS, data_point_size){
+async function replicate_writes_to_lagging_followers(lagging_followers, CURRENT_NODE_ADDRESS, log_last_index, leader_log_file_descriptor, data_object, RAFT_LOG_CONSTANTS, data_point_size){
 	
 	let replicate_log_successes = []
 	let replicate_log_promises = gather_writes_to_lagging_followers_promises(
 		lagging_followers, CURRENT_NODE_ADDRESS, log_last_index, leader_log_file_descriptor, 
-		data_object, DATA_SIZE_CONSTANTS, data_point_size)
+		data_object, RAFT_LOG_CONSTANTS, data_point_size)
 
 	await Promise.allSettled(replicate_log_promises).then((all_promise_results) => {
 
@@ -188,12 +188,12 @@ async function replicate_writes_to_lagging_followers(lagging_followers, CURRENT_
 
 
 // only the leader calls this function (indirectly) and CURRENT_NODE_ADDRESS is the leader's address
-function gather_writes_to_lagging_followers_promises(lagging_followers, CURRENT_NODE_ADDRESS, log_last_index, leader_log_file_descriptor, data_object, DATA_SIZE_CONSTANTS, data_point_size){
+function gather_writes_to_lagging_followers_promises(lagging_followers, CURRENT_NODE_ADDRESS, log_last_index, leader_log_file_descriptor, data_object, RAFT_LOG_CONSTANTS, data_point_size){
 	
 	let replicate_log_promises = []
 
 	for(let i = 0; i < lagging_followers.length; i++){
-		let replicate_log_promise = replicate_writes_to_lagging_follower_helper(lagging_followers, CURRENT_NODE_ADDRESS, log_last_index, leader_log_file_descriptor, data_object, DATA_SIZE_CONSTANTS, data_point_size, i)
+		let replicate_log_promise = replicate_writes_to_lagging_follower_helper(lagging_followers, CURRENT_NODE_ADDRESS, log_last_index, leader_log_file_descriptor, data_object, RAFT_LOG_CONSTANTS, data_point_size, i)
 		replicate_log_promise.then((promise_result) => {		// promise_result is the value passed to Promise's resolve() function
 			console.log(`gather_writes_to_lagging_followers_promises(): replicate_log_promise then() function, value of promise_result: ${promise_result} at ${get_timestamp()}`)
 		}).catch((error) => {
@@ -207,7 +207,7 @@ function gather_writes_to_lagging_followers_promises(lagging_followers, CURRENT_
 
 
 // only the leader calls this function (indirectly) and CURRENT_NODE_ADDRESS is the leader's address
-function replicate_writes_to_lagging_follower_helper(lagging_followers, CURRENT_NODE_ADDRESS, log_last_index, leader_log_file_descriptor, data_object, DATA_SIZE_CONSTANTS, data_point_size, index){
+function replicate_writes_to_lagging_follower_helper(lagging_followers, CURRENT_NODE_ADDRESS, log_last_index, leader_log_file_descriptor, data_object, RAFT_LOG_CONSTANTS, data_point_size, index){
 
 	let lagging_follower_address = lagging_followers[index].follower_address
 	let lagging_follower_log_last_index = lagging_followers[index].followers_log_last_index
@@ -227,7 +227,7 @@ function replicate_writes_to_lagging_follower_helper(lagging_followers, CURRENT_
 			let leader_log_incremented = true
 			let missing_entries = leader_read_missing_entries_on_follower(leader_log_file_descriptor, log_last_index, lagging_follower_log_last_index, data_point_size, leader_log_incremented)
 			
-			let most_recent_write = assemble_write(data_object, DATA_SIZE_CONSTANTS)
+			let most_recent_write = assemble_write(data_object, RAFT_LOG_CONSTANTS)
 			missing_entries.push(most_recent_write)
 
 			const payload = { 
@@ -275,7 +275,7 @@ function replicate_writes_to_lagging_follower_helper(lagging_followers, CURRENT_
 }
 
 
-async function catchup_followers_log_at_startup(follower_address, followers_log_last_index, follower_log_file_path, LEADER_ADDRESS, DATA_SIZE_CONSTANTS){
+async function catchup_followers_log_at_startup(follower_address, followers_log_last_index, follower_log_file_path, LEADER_ADDRESS, RAFT_LOG_CONSTANTS){
 
 	try {
 		let new_last_line = ""
@@ -287,7 +287,7 @@ async function catchup_followers_log_at_startup(follower_address, followers_log_
 		// solves a bug in case catchup happens after a new write
 		if (promise_result.length > 0){
 
-			let log_index_and_term = get_log_index_and_term(promise_result[0], DATA_SIZE_CONSTANTS)
+			let log_index_and_term = get_log_index_and_term(promise_result[0], RAFT_LOG_CONSTANTS)
 			let smallest_index_of_missing_entries = log_index_and_term[0]
 
 			if(followers_log_last_index < smallest_index_of_missing_entries){

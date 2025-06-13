@@ -24,14 +24,14 @@ function read_last_line(fd, data_point_size){
 
 
 // get the log_index and term number out of the line in the log
-function get_log_index_and_term(line, DATA_SIZE_CONSTANTS){
+function get_log_index_and_term(line, RAFT_LOG_CONSTANTS){
 
 	let log_start_index = 1
-	let log_end_index = log_start_index + DATA_SIZE_CONSTANTS.log_index_size
+	let log_end_index = log_start_index + RAFT_LOG_CONSTANTS.log_index_size
 	let _log_index = Number(line.substring(log_start_index, log_end_index).trim())
 
 	let term_start_index = log_end_index
-	let term_end_index = term_start_index + DATA_SIZE_CONSTANTS.term_size
+	let term_end_index = term_start_index + RAFT_LOG_CONSTANTS.term_size
 	let _term = Number(line.substring(term_start_index, term_end_index).trim())
 	console.log(`get_log_index_and_term(): _log_index: ${_log_index}, _term: ${_term}`)
 	return [_log_index, _term]

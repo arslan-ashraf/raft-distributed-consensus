@@ -2,7 +2,7 @@ const fs = require("fs")
 const get_timestamp = require("../get_timestamp")
 
 // followers call this function
-function handle_write_to_follower(CURRENT_NODE_ADDRESS, CURRENT_NODE_STATE, data, followers_log_last_index, log_file_path, hash_table_file_descriptor, DATA_SIZE_CONSTANTS){
+function handle_write_to_follower(CURRENT_NODE_ADDRESS, CURRENT_NODE_STATE, data, followers_log_last_index, log_file_path, hash_table_file_descriptor, RAFT_LOG_CONSTANTS){
 
 	let payload = { "sender": CURRENT_NODE_ADDRESS }
 	let leaders_log_last_index = data.log_index
@@ -13,11 +13,11 @@ function handle_write_to_follower(CURRENT_NODE_ADDRESS, CURRENT_NODE_STATE, data
 		const data_to_write = { "log_index": data.log_index, "term": data.term,
 								"key": data.key, "value": data.value }
 
-		const line_to_append = assemble_write(data_to_write, DATA_SIZE_CONSTANTS)								
-		append_writes_to_log([line_to_append], log_file_path, DATA_SIZE_CONSTANTS)
+		const line_to_append = assemble_write(data_to_write, RAFT_LOG_CONSTANTS)								
+		append_writes_to_log([line_to_append], log_file_path, RAFT_LOG_CONSTANTS)
 
 		/////////////////// FOLLOWER writes to hash table here ////////////////////
-		// write_to_hash_table(hash_table_file_descriptor, [line_to_append], CURRENT_NODE_ADDRESS, DATA_SIZE_CONSTANTS)
+		// write_to_hash_table(hash_table_file_descriptor, [line_to_append], CURRENT_NODE_ADDRESS, RAFT_LOG_CONSTANTS)
 
 		payload.message_type = "WRITE_SUCCESS_ON_FOLLOWER"
 	} else {
@@ -90,22 +90,22 @@ function leader_read_missing_entries_on_follower(fd, leaders_log_last_index, fol
 }
 
 
-function assemble_write(data_object, DATA_SIZE_CONSTANTS){
+function assemble_write(data_object, RAFT_LOG_CONSTANTS){
 
 	let _log_index = String(data_object.log_index)
-	let _log_index_num_spaces = DATA_SIZE_CONSTANTS.log_index_size - _log_index.length
+	let _log_index_num_spaces = RAFT_LOG_CONSTANTS.log_index_size - _log_index.length
 	_log_index += " ".repeat(_log_index_num_spaces)
 	
 	let _term = String(data_object.term)
-	let _term_num_spaces = DATA_SIZE_CONSTANTS.term_size - _term.length
+	let _term_num_spaces = RAFT_LOG_CONSTANTS.term_size - _term.length
 	_term += " ".repeat(_term_num_spaces)
 
 	let _key = String(data_object.key)
-	let _key_num_spaces = DATA_SIZE_CONSTANTS.key_size - _key.length
+	let _key_num_spaces = RAFT_LOG_CONSTANTS.key_size - _key.length
 	_key += " ".repeat(_key_num_spaces)
 
 	let _value = String(data_object.value)
-	let _value_num_spaces = DATA_SIZE_CONSTANTS.value_size - _value.length
+	let _value_num_spaces = RAFT_LOG_CONSTANTS.value_size - _value.length
 	_value += " ".repeat(_value_num_spaces)
 
 	return "\n" + _log_index + _term + _key + _value
