@@ -1,9 +1,10 @@
  ----------------------------------------------------------------------------------
-| "\n" 1 byte | log_index 20 bytes | term 10 bytes | key 20 bytes | value 49 bytes |
+|  log_index 20 bytes | term 10 bytes | key 20 bytes | value 49 bytes | \n 1 byte  |
  ----------------------------------------------------------------------------------
+
 log_index			term	  key 				  value
+
 1                   1         key_x1              1                                                
-2                   2         key_x2              2                                                
-3                   2         key_x3              3                                                
-4                   3         key_x4              4                                                
-5                   3         key_x5              5                                                
+2                   1         key_x2              2                                                
+3                   1         key_x3              3                                                
+4                   2         key_x4              4                                                

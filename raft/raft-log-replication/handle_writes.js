@@ -108,7 +108,28 @@ function assemble_write(data_object, RAFT_LOG_CONSTANTS){
 	let _value_num_spaces = RAFT_LOG_CONSTANTS.value_size - _value.length
 	_value += " ".repeat(_value_num_spaces)
 
-	return "\n" + _log_index + _term + _key + _value
+	return _log_index + _term + _key + _value + "\n"
+}
+
+
+function initialize_log_file(log_file_descriptor){
+	let log_initial_text = ` ----------------------------------------------------------------------------------
+|  log_index 20 bytes | term 10 bytes | key 20 bytes | value 49 bytes | \\n 1 byte  |
+ ----------------------------------------------------------------------------------
+
+log_index			term	  key 				  value\n\n`
+
+	let stats = fs.fstatSync(log_file_descriptor)
+	let file_size = String(stats.size)
+
+	if (file_size == 0){
+		console.log(`-------------- INITIALIZING LOG FILE ----------------`)
+		let log_initial_text_buffer = Buffer.from(log_initial_text)
+		fs.writeSync(log_file_descriptor, log_initial_text_buffer, 0, log_initial_text_buffer.byteLength, file_size)
+	} else {
+		console.log(`-------------- LOG FILE ALREAD INITIALIZED ---------------`)
+	}
+
 }
 
 
@@ -117,5 +138,6 @@ module.exports = {
 	handle_writes_to_lagging_followers, 
 	append_writes_to_log,
 	leader_read_missing_entries_on_follower,
-	assemble_write
+	assemble_write,
+	initialize_log_file
 }

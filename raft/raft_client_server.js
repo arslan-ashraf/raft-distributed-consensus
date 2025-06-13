@@ -26,7 +26,8 @@ const {
 const { 
 	handle_write_to_follower, 
 	handle_writes_to_lagging_followers,
-	leader_read_missing_entries_on_follower
+	leader_read_missing_entries_on_follower,
+	initialize_log_file
 } = require("./raft-log-replication/handle_writes")
 
 const { 
@@ -87,7 +88,8 @@ const RAFT_LOG_CONSTANTS = {
 }
 
 const log_file_path = path.join(process.cwd(), "raft-files", `${SERVER_PORT}-log.txt`)
-const log_file_descriptor = fs.openSync(log_file_path)
+const log_file_descriptor = fs.openSync(log_file_path, "rs+")
+initialize_log_file(log_file_descriptor)
 
 const hash_table_file_path = path.join(path.dirname(process.cwd()), "on-disk-hash-table", `${SERVER_PORT}-hash-table.txt`)
 const hash_table_file_descriptor = fs.openSync(hash_table_file_path, "rs+")
@@ -277,9 +279,9 @@ if (CURRENT_NODE_STATE != "LEADER"){
 			console.log("T".repeat(100))
 			console.log(log_last_line)
 			let log_index_and_term = get_log_index_and_term(log_last_line, RAFT_LOG_CONSTANTS)
-			log_last_index = log_index_and_term[0]
-			term = log_index_and_term[1]
-			console.log(`log_index_and_term:`, log_index_and_term)
+			log_last_index = Number.isNaN(log_index_and_term[0]) ? 0 : log_index_and_term[0]
+			term = Number.isNaN(log_index_and_term[1]) ? 0 : log_index_and_term[1]
+			console.log(`log_last_index: ${log_last_index}, term: ${term}`)
 			console.log("T".repeat(100))
 
 			if (LEADER_ADDRESS != null){

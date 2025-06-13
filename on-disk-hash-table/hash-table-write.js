@@ -5,7 +5,7 @@ const get_timestamp = require("../get_timestamp")
 
 
 const HASH_TABLE_CONSTANTS = {
-	"HASH_TABLE_MAX_ENTRIES": 4,
+	"HASH_TABLE_MAX_ENTRIES": 5,
 	"NUM_BYTES_PER_ADDRESS": 10,
 	"HASH_TABLE_HEADER_SIZE": 100,
 	"VERSION_NUMBER_SIZE": 10,
@@ -32,12 +32,14 @@ function write_to_hash_table(
 
 		// first verify if there is a hash collision or not
 		let is_hash_collision = hash_collision_bool(hash_table_file_descriptor, index_cell_position, HASH_TABLE_CONSTANTS)
+		console.log(`write_to_hash_table(): parsed data_point:\n`, data_point, `\nkey: ${key}, index_cell_position: ${index_cell_position}, is_hash_collision: ${is_hash_collision}`)
+
 		if (is_hash_collision == false){
 
 			// because the new data is to be appended, we need to know where to start 
 			// appending as the current address_of_data_to_write is the address that will be stored
 			// in the index cell at index_cell_position
-			let stats = fs.fstatSync(hash_map_file_descriptor)
+			let stats = fs.fstatSync(hash_table_file_descriptor)
 			let address_of_data_to_write = stats.size
 
 			write_address_in_index_cell(
@@ -49,6 +51,8 @@ function write_to_hash_table(
 			write_data_in_hash_table(
 				hash_table_file_descriptor, line_to_write, address_of_data_to_write
 			)
+
+			console.log(`write_to_hash_table(): line_to_write: ${line_to_write}`)
 
 		}
 
@@ -71,7 +75,7 @@ function parse_line(line, RAFT_LOG_CONSTANTS){
 
 	let value_start_index = key_end_index
 	let value_end_index = value_start_index + RAFT_LOG_CONSTANTS.value_size
-	let _value = line.substring(value_start_index, value_end_index)
+	let _value = line.substring(value_start_index, value_end_index).trim()
 
 	return [_log_index, _term, _key, _value]
 }
@@ -83,7 +87,8 @@ function find_index_cell_position(key, HASH_TABLE_CONSTANTS){
 	let hash_digest_hex = hash_function.digest("hex")	// hashed value in hexadecimal
 	let hash_digest_decimal = parseInt(hash_digest_hex, 16) // hashed value in base10
 	let index_cell = hash_digest_decimal % HASH_TABLE_CONSTANTS.HASH_TABLE_MAX_ENTRIES
-	let index_cell_position = HASH_TABLE_CONSTANTS.HASH_TABLE_HEADER_SIZE + (index_cell * NUM_BYTES_PER_ADDRESS) + 1
+	console.log(`find_index_cell_position(): index_cell: ${index_cell}`)
+	let index_cell_position = HASH_TABLE_CONSTANTS.HASH_TABLE_HEADER_SIZE + (index_cell * HASH_TABLE_CONSTANTS.NUM_BYTES_PER_ADDRESS) + 1
 	return index_cell_position
 }
 
@@ -95,8 +100,8 @@ function hash_collision_bool(hash_table_file_descriptor, index_cell_position, HA
 
 	if (cell_index_num_bytes_read > 0){
 		let index_cell_read = index_read_buffer.toString('utf-8').trim()
-		console.log(`index_cell_read.length ${index_cell_read.length}, index_cell_read: ${index_cell_read}`)
-		if(index_cell_read.length > 0) return false
+		console.log(`hash_collision_bool(): is index_cell_read already taken? index_cell_read.length ${index_cell_read.length}, index_cell_read: ${index_cell_read}`)
+		if(index_cell_read.length == 0) return false
 	}
 	return true
 }
@@ -153,6 +158,7 @@ function write_data_in_hash_table(hash_table_file_descriptor, line_to_write, add
 }
 
 
+
 function initialize_hash_table_file(hash_table_file_path, hash_table_file_descriptor, HASH_TABLE_CONSTANTS){
 	
 	fs.writeFileSync(hash_table_file_path, "", (error) => { console.error(error) })
@@ -160,7 +166,7 @@ function initialize_hash_table_file(hash_table_file_path, hash_table_file_descri
 	let hash_table_index_header = "///////////////////////////////////////// INDEX SECTION ///////////////////////////////////////////\n\n"
 	let hash_table_data_header = "///////////////////////////////////////// DATA SECTION ////////////////////////////////////////////\n\n"
 	let hash_table_data_format = `---------------------------------------------------------------------------------------------------
-\\n 1 byte | verion_number 10 bytes | status 10 bytes | key 20 bytes | value 49 bytes | pointer 10 
+ \\n 1 byte | verion_number 10 bytes | status 10 bytes | key 20 bytes | value 49 bytes | pointer 10 
 ---------------------------------------------------------------------------------------------------\n`
 
 	console.log(hash_table_index_header)
