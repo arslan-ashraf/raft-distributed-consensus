@@ -77,7 +77,7 @@ console.log(`parent of current working dir: ${path.dirname(process.cwd())}`)
 //  ----------------------------------------------------------------------------------
 
 // 100 bytes because that is the size of each log entry
-let buffer_size = 100 		// buffer that will be appended to the log is this size
+let data_point_size = 100 		// buffer that will be appended to the log is this size
 
 const DATA_SIZE_CONSTANTS = {
 	"log_index_size": 20,
@@ -88,6 +88,10 @@ const DATA_SIZE_CONSTANTS = {
 
 const log_file_path = path.join(process.cwd(), "raft-files", `${SERVER_PORT}-log.txt`)
 const log_file_descriptor = fs.openSync(log_file_path)
+
+const hash_table_file_path = path.join(path.dirname(process.cwd()), "on-disk-hash-table", `${SERVER_PORT}-hash-table.txt`)
+const hash_table_file_descriptor = fs.openSync(hash_table_file_path, "rs+")
+
 let heartbeat_received = false
 
 // these variables need to be stored on disk
@@ -177,7 +181,7 @@ server.on("connection", (server_socket) => {
 				console.log(`%%%%%%%% leaders term: ${term} $$$$$$$$$$$`)
 				write_and_replicate_write_to_followers(
 					PEERS, CURRENT_NODE_ADDRESS, data_object, QUORUM, server_socket, payload, 
-					log_last_index, log_file_path, log_file_descriptor, buffer_size, DATA_SIZE_CONSTANTS
+					log_last_index, log_file_path, log_file_descriptor, data_point_size, DATA_SIZE_CONSTANTS
 				)
 				
 			} else { // in case the current node is actually a follower
@@ -192,7 +196,7 @@ server.on("connection", (server_socket) => {
 
 			console.log(`${CURRENT_NODE_STATE} ${CURRENT_NODE_ADDRESS} received a REPLICATE_WRITE_TO_FOLLOWER message from LEADER ${data.sender} at ${get_timestamp()}`)
 			
-			let payload = handle_write_to_follower(CURRENT_NODE_ADDRESS, CURRENT_NODE_STATE, data, log_last_index, log_file_path, DATA_SIZE_CONSTANTS)
+			let payload = handle_write_to_follower(CURRENT_NODE_ADDRESS, CURRENT_NODE_STATE, data, log_last_index, log_file_path, hash_table_file_descriptor, DATA_SIZE_CONSTANTS)
 			log_last_index += 1
 			server_socket.write(JSON.stringify(payload))
 		
@@ -222,7 +226,7 @@ server.on("connection", (server_socket) => {
 			console.log(`${CURRENT_NODE_STATE} ${CURRENT_NODE_ADDRESS} received a CATCHUP_FOLLOWER_LOG_REQUEST message from FOLLOWER ${data.sender} at ${get_timestamp()}`)
 			
 			let leader_log_incremented = false
-			let missing_entries = leader_read_missing_entries_on_follower(log_file_descriptor, log_last_index, data.followers_log_last_index, buffer_size, leader_log_incremented)
+			let missing_entries = leader_read_missing_entries_on_follower(log_file_descriptor, log_last_index, data.followers_log_last_index, data_point_size, leader_log_incremented)
 			
 			const payload = {
 				"sender": CURRENT_NODE_ADDRESS,
@@ -269,7 +273,7 @@ if (CURRENT_NODE_STATE != "LEADER"){
 			console.log(`Step 11 - Raft server: Current node address: ${CURRENT_NODE_ADDRESS} and current node state: ${CURRENT_NODE_STATE} at ${get_timestamp()}`)
 			console.log("#".repeat(100))
 			
-			let log_last_line = read_last_line(log_file_descriptor, buffer_size)
+			let log_last_line = read_last_line(log_file_descriptor, data_point_size)
 			console.log("T".repeat(100))
 			console.log(log_last_line)
 			let log_index_and_term = get_log_index_and_term(log_last_line, DATA_SIZE_CONSTANTS)

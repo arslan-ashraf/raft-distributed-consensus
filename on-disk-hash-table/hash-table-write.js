@@ -3,14 +3,14 @@ const path = require("path")
 const crypto = require("crypto")
 const get_timestamp = require("../get_timestamp")
 
+const HASH_TABLE_HEADER_SIZE = 100
 const HASH_TABLE_SIZE = 3
 
 // lines_to_write is an array of lines assembled exactly as they 
 // are appended to the log, its usually just one line in the array
-function write_to_hash_table(lines_to_write, NODE_ADDRESS, DATA_SIZE_CONSTANTS){
+function write_to_hash_table(hash_table_file_descriptor, lines_to_write, NODE_ADDRESS, DATA_SIZE_CONSTANTS){
 
-	let SERVER_PORT = NODE_ADDRESS.substring(NODE_ADDRESS.length - 4)
-	const hash_table_file_path = path.join(process.cwd(), `${SERVER_PORT}-hash-table.txt`)
+	let SERVER_PORT = NODE_ADDRESS.substring(NODE_ADDRESS.length - 4)	
 
 	for(let i = 0; i < lines_to_write.length; i++){
 

@@ -2,16 +2,16 @@ const fs = require("fs")
 const path = require("path")
 
 // read the log's last line
-function read_last_line(fd, buffer_size){
+function read_last_line(fd, data_point_size){
 
 	const stats = fs.fstatSync(fd)
 	const file_size = stats.size
 	console.log(`read_last_line(): file_size: ${file_size}`)
-	const buffer = Buffer.alloc(buffer_size)
+	const buffer = Buffer.alloc(data_point_size)
 	let num_bytes_read = -1
 
-	if (file_size - buffer_size >= 0){
-		num_bytes_read = fs.readSync(fd, buffer, 0, buffer_size, file_size - buffer_size)
+	if (file_size - data_point_size >= 0){
+		num_bytes_read = fs.readSync(fd, buffer, 0, data_point_size, file_size - data_point_size)
 	}
 
 	if (num_bytes_read > 0) {

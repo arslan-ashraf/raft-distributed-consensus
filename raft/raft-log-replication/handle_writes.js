@@ -2,7 +2,7 @@ const fs = require("fs")
 const get_timestamp = require("../get_timestamp")
 
 // followers call this function
-function handle_write_to_follower(CURRENT_NODE_ADDRESS, CURRENT_NODE_STATE, data, followers_log_last_index, log_file_path, DATA_SIZE_CONSTANTS){
+function handle_write_to_follower(CURRENT_NODE_ADDRESS, CURRENT_NODE_STATE, data, followers_log_last_index, log_file_path, hash_table_file_descriptor, DATA_SIZE_CONSTANTS){
 
 	let payload = { "sender": CURRENT_NODE_ADDRESS }
 	let leaders_log_last_index = data.log_index
@@ -17,7 +17,7 @@ function handle_write_to_follower(CURRENT_NODE_ADDRESS, CURRENT_NODE_STATE, data
 		append_writes_to_log([line_to_append], log_file_path, DATA_SIZE_CONSTANTS)
 
 		/////////////////// FOLLOWER writes to hash table here ////////////////////
-		// write_to_hash_table([line_to_append], CURRENT_NODE_ADDRESS, DATA_SIZE_CONSTANTS)
+		// write_to_hash_table(hash_table_file_descriptor, [line_to_append], CURRENT_NODE_ADDRESS, DATA_SIZE_CONSTANTS)
 
 		payload.message_type = "WRITE_SUCCESS_ON_FOLLOWER"
 	} else {
@@ -60,7 +60,7 @@ function append_writes_to_log(data_entries, log_file_path){
 }
 
 
-function leader_read_missing_entries_on_follower(fd, leaders_log_last_index, followers_log_last_index, buffer_size, leader_log_incremented){
+function leader_read_missing_entries_on_follower(fd, leaders_log_last_index, followers_log_last_index, data_point_size, leader_log_incremented){
 	
 	console.log(`leader_read_missing_entries_on_follower(): leaders_log_last_index: ${leaders_log_last_index}, followers_log_last_index: ${followers_log_last_index}`)
 	
@@ -71,16 +71,16 @@ function leader_read_missing_entries_on_follower(fd, leaders_log_last_index, fol
 	if (leader_log_incremented == true) num_missing_entries -= 1
 	const stats = fs.fstatSync(fd)
 	const file_size = stats.size
-	let buffer = Buffer.alloc(buffer_size)
-	let file_offset = file_size - buffer_size
+	let buffer = Buffer.alloc(data_point_size)
+	let file_offset = file_size - data_point_size
 	let missing_entries = []
 
 	for (let i = 0; i < num_missing_entries; i++){
-		let num_bytes_read = fs.readSync(fd, buffer, 0, buffer_size, file_offset)
+		let num_bytes_read = fs.readSync(fd, buffer, 0, data_point_size, file_offset)
 		if (num_bytes_read > 0) {
 			let line_read = buffer.toString('utf-8')
 			missing_entries.push(line_read)
-			file_offset -= buffer_size
+			file_offset -= data_point_size
 		}
 	}
 
