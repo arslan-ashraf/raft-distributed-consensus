@@ -4,15 +4,17 @@ const get_timestamp = require("../raft/get_timestamp")
 
 async function send_write_to_leader(json_data, LEADER_ADDRESS, CURRENT_NODE_ADDRESS, response){
 
-	let client_response_payload = {}
+	let client_response_payload = { "sender": CURRENT_NODE_ADDRESS }
+	
 	let write_promise_response = await send_write_to_leader_helper(json_data, LEADER_ADDRESS, CURRENT_NODE_ADDRESS)
-	console.log(`db-server send_write_to_leader(): write_promise_response at ${get_timestamp()}: ${write_promise_response}`)
+	console.log(`DB SERVER - send_write_to_leader(): write_promise_response at ${get_timestamp()}: ${write_promise_response}`)
 	client_response_payload["response"] = write_promise_response
 
 	response.writeHead(200, { 'Content-Type': 'application/json' })
 	response.end(JSON.stringify(client_response_payload))
+
 	console.log("=".repeat(100))
-	
+
 }
 
 
@@ -29,7 +31,7 @@ function send_write_to_leader_helper(json_data, LEADER_ADDRESS, CURRENT_NODE_ADD
 		client_socket.on("timeout", () => { client_socket.destroy() })
 			
 		client_socket.connect(LEADER_PORT, LEADER_IP, () => {
-			console.log(`db-server - send_write_to_leader_helper(): sending write to raft leader ${LEADER_ADDRESS} at ${get_timestamp()}`)
+			console.log(`DB SERVER - send_write_to_leader_helper(): sending write to raft leader ${LEADER_ADDRESS} at ${get_timestamp()}`)
 			const payload = { 
 				"sender": `${CURRENT_NODE_ADDRESS}`,
 				"message_type": "WRITE_REQUEST_TO_LEADER",
@@ -41,14 +43,14 @@ function send_write_to_leader_helper(json_data, LEADER_ADDRESS, CURRENT_NODE_ADD
 
 		client_socket.on("data", (server_response) => {
 			server_response = JSON.parse(server_response)
-			console.log(`db-server - send_write_to_leader_helper(): server_response received from server ${server_response.sender} at ${get_timestamp()}\n`, server_response)
+			console.log(`DB SERVER - send_write_to_leader_helper(): server_response received from server ${server_response.sender} at ${get_timestamp()}\n`, server_response)
 
 			if (server_response.message_type == "REQUEST_REACHED_FOLLOWER"){
 				let leader_address = server_response.message // empty string ("") if not leader
 				if (leader_address.length > 0){
-					console.log(`db-server - send_write_to_leader_helper(): current leader is ${leader_address} at ${get_timestamp()}`)
+					console.log(`DB SERVER - send_write_to_leader_helper(): current leader is ${leader_address} at ${get_timestamp()}`)
 				} else {
-					console.log(`db-server - send_write_to_leader_helper(): sender doesn't know the leader, message from ${server_response.sender} at ${get_timestamp()}`)
+					console.log(`DB SERVER - send_write_to_leader_helper(): sender doesn't know the leader, message from ${server_response.sender} at ${get_timestamp()}`)
 				}
 				reject(leader_address)
 			} else if (server_response.message_type == "WRITE_SUCCESS"){
@@ -59,11 +61,11 @@ function send_write_to_leader_helper(json_data, LEADER_ADDRESS, CURRENT_NODE_ADD
 		})
 
 		client_socket.on("close", () => {
-			// console.log(`db-server - send_write_to_leader_helper(): client socket has been closed`)
+			// console.log(`DB SERVER - send_write_to_leader_helper(): client socket has been closed`)
 		})
 
 		client_socket.on("error", (error) => {
-			console.error(`db-server - send_write_to_leader_helper(): socket error while connecting to leader ${LEADER_ADDRESS} at ${get_timestamp()}`)
+			console.error(`DB SERVER - send_write_to_leader_helper(): socket error while connecting to leader ${LEADER_ADDRESS} at ${get_timestamp()}`)
 			reject("")
 			client_socket.destroy()
 		})

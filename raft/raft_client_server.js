@@ -57,11 +57,10 @@ const PEER2 = {
 }
 
 const PEERS = [PEER1, PEER2]
-let quorum_nodes = (PEERS.length + 1)/2
-// in case there are an even number of nodes in the cluster
-const EPSILON = 0.1
-if (quorum_nodes % 2 == 0){ quorum_nodes = quorum_nodes + EPSILON }
-const QUORUM = quorum_nodes
+
+let QUORUM = (PEERS.length + 1)/2
+let EPSILON = 0.1 	// in case there are an even number of nodes in the cluster
+if (QUORUM % 2 == 0){ QUORUM = QUORUM + EPSILON }
 
 let CURRENT_NODE_STATE = "FOLLOWER"
 let LEADER_ADDRESS = null

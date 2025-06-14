@@ -83,10 +83,9 @@ const database_server = http.createServer((request, response) => {
 
 		let key = request.url.substring(5)
 		console.log(`GET request coming in, request.url: ${request.url}, key: ${key}`)
-		
+
 		send_read_to_raft_cluster(key, RAFT_CLUSTER, CURRENT_NODE_ADDRESS, response)
 
-		console.log("+".repeat(100))
 	} else {
 		res.writeHead(404, { 'Content-Type': 'text/plain' })
 		res.end('Not Found')

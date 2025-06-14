@@ -4,29 +4,54 @@ const get_timestamp = require("../raft/get_timestamp")
 
 async function send_read_to_raft_cluster(key, RAFT_CLUSTER, CURRENT_NODE_ADDRESS, response){
 
-	let client_response_payload = {}
-	let read_promise_response = await send_read_to_raft_cluster_helper(key, RAFT_CLUSTER, CURRENT_NODE_ADDRESS)
-	console.log(`db-server send_read_to_raft_cluster(): read_promise_response at ${get_timestamp()}: ${read_promise_response}`)
-	client_response_payload["response"] = read_promise_response
+	let client_response_payload = { "sender": CURRENT_NODE_ADDRESS }
 
-	response.readHead(200, { 'Content-Type': 'application/json' })
-	response.end(JSON.stringify(client_response_payload))
+	let read_request_promises = send_read_to_raft_cluster_promises(key, RAFT_CLUSTER, CURRENT_NODE_ADDRESS)
+
+	await Promise.allSettled(read_request_promises).then((all_promise_results) => {
+		
+		console.log(`DB SERVER - send_read_to_raft_cluster(): all_promise_results at ${get_timestamp()}: ${all_promise_results}`)
+		
+		let raft_cluster_responses = []
+		all_promise_results.map((promise_result) => {
+			if (promise_result.message_type == "KEY_FOUND"){
+				raft_cluster_responses.push([promise_result.version_number, promise_result.value])
+			} else if (promise_result.message_type == "KEY_NOT_FOUND"){
+				console.log(`DB SERVER - Raft node ${promise_result.sender} did not return a read response`)
+			}
+		})
+
+		let value = find_value_with_highest_version(raft_cluster_responses, RAFT_CLUSTER.length)
+
+		client_response_payload["response"] = value
+
+		response.writeHead(200, { 'Content-Type': 'application/json' })
+		response.end(JSON.stringify(client_response_payload))
+
+		console.log("+".repeat(100))
+
+	}).catch((error) => {
+		console.log(`DB SERVER - send_read_to_raft_cluster(): Promise.allSettled() failed with error at ${get_timestamp()}\n`, error)
+
+		response.writeHead(501, { 'Content-Type': 'text/plain' })
+		response.end("Internal Server Error")
+	})
 
 }
 
 
-function send_read_to_raft_cluster_helper(key, RAFT_CLUSTER, CURRENT_NODE_ADDRESS){
+function send_read_to_raft_cluster_promises(key, RAFT_CLUSTER, CURRENT_NODE_ADDRESS){
 
 	let read_promises = []
 
 	for(let i = 0; i < RAFT_CLUSTER.length; i++){
 		let read_promise = send_read_request(key, RAFT_CLUSTER, CURRENT_NODE_ADDRESS, i)
 		read_promise.then((promise_result) => {		// promise_result is the value passed to Promise's resolve() function
-			console.log(`send_read_to_raft_cluster_helper(): read_promise then() function, value of promise_result: ${promise_result} at ${get_timestamp()}`)
+			console.log(`send_read_to_raft_cluster_promises(): read_promise then() function, value of promise_result at ${get_timestamp()}:\n`, promise_result)
 		}).catch((error) => {
-			console.error(`send_read_to_raft_cluster_helper(): promise error while connecting to node ${error.address}:${error.port} at ${get_timestamp()}`)
+			console.error(`send_read_to_raft_cluster_promises(): promise error while connecting to node ${error.address}:${error.port} at ${get_timestamp()}`, error)
 		})
-		read_promises.push(read_promise)
+		read_promises.push(read_promise)		
 	}
 
 	return read_promises
@@ -96,6 +121,33 @@ function send_read_request(RAFT_CLUSTER, CURRENT_NODE_ADDRESS, data_object, inde
 
 	return read_promise
 
+}
+
+
+function find_value_with_highest_version(raft_cluster_responses, cluster_size){
+	let largest_version_number = -1
+	let value = ""
+	
+	let QUORUM = cluster_size/2
+	let EPSILON = 0.1  // in case there are an even number of nodes in the cluster
+	if (QUORUM % 2 == 0){ QUORUM = QUORUM + EPSILON }
+
+	if (raft_cluster_responses.length > QUORUM){
+
+		for (let i = 0; i < raft_cluster_responses.length; i++){
+
+			if (raft_cluster_responses[i][0] > largest_version_number){
+				largest_version_number = raft_cluster_responses[i][0]
+				value = raft_cluster_responses[i][1]
+			}
+
+		}
+
+	} else {
+		value = "NO KEY/VALUE FOUND"
+	}
+
+	return value
 }
 
 
