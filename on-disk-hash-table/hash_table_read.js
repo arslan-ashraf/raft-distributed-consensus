@@ -4,6 +4,9 @@ const crypto = require("crypto")
 
 
 function read_from_hash_table(hash_table_file_descriptor, key, HASH_TABLE_CONSTANTS){
+
+	let key_found = false
+	let value = ""
 	
 	let index_cell_position = find_index_cell_position(key, HASH_TABLE_CONSTANTS)
 
@@ -15,10 +18,19 @@ function read_from_hash_table(hash_table_file_descriptor, key, HASH_TABLE_CONSTA
 	let search_address = Number(hash_collision_and_search_address[1]) 	// either "" or address number
 
 	if (is_hash_collision == true){
-		let key_found_and_value = find_matching_key_in_linked_list(
+		let key_found_and_data = find_matching_key_in_linked_list(
 			hash_table_file_descriptor, key, search_address, HASH_TABLE_CONSTANTS
 		)
+
+		key_found = key_found_and_data[0]
+		let data_point = key_found_and_data[1]
+
+		if (key_found == true){
+			value = parse_value(data_point, HASH_TABLE_CONSTANTS)
+		}
 	}
+
+	return [key_found, value]
 
 }
 
@@ -51,16 +63,18 @@ function index_cell_hash_collision(hash_table_file_descriptor, index_cell_positi
 }
 
 
-function find_matching_key_in_linked_list(hash_table_file_descriptor, key, search_address, HASH_TABLE_CONSTANTS){
+// traverses the logical linked list to find matching key
+function find_matching_key_in_linked_list(hash_table_file_descriptor, input_key, search_address, HASH_TABLE_CONSTANTS){
 
-	let current_search_address = search_address
+	let current_data_point_address = search_address
+	let key_found = false
 	let data_read = ""
 
 	while(true){
 		
 		let _data_point_size = HASH_TABLE_CONSTANTS.DATA_POINT_SIZE
 		let data_buffer = Buffer.alloc(_data_point_size)
-		let num_bytes_read = fs.readSync(hash_table_file_descriptor, data_buffer, 0, _data_point_size, current_search_address)
+		let num_bytes_read = fs.readSync(hash_table_file_descriptor, data_buffer, 0, _data_point_size, current_data_point_address)
 		
 		if(num_bytes_read > 0){
 			data_read = data_buffer.toString('utf-8')
@@ -69,27 +83,35 @@ function find_matching_key_in_linked_list(hash_table_file_descriptor, key, searc
 			let key_start_index = HASH_TABLE_CONSTANTS.VERSION_NUMBER_SIZE + HASH_TABLE_CONSTANTS.LIVE_STATUS_SIZE
 			let key_end_index = key_start_index + HASH_TABLE_CONSTANTS.KEY_SIZE
 			let read_key = data_read.substring(key_start_index, key_end_index).trim()
-			console.log("x".repeat(100))
-			console.log(`find_address_of_writable_node_of_linked_list(): data_read.length: ${data_read.length}, next_node_address: ${next_node_address}, read_key: ${read_key}, data_read: ${data_read}`)
-			console.log(`find_address_of_writable_node_of_linked_list(): next_node_address == "null": ${next_node_address == "null"}, read_key == new_key: ${read_key == new_key}`)
-			console.log("x".repeat(100))
-			if (read_key == new_key){
-				address_of_writable_node = address_of_current_data_point
-				new_write_or_update = "UPDATE"
+			console.log(">".repeat(100))
+			console.log(`find_matching_key_in_linked_list(): data_read.length: ${data_read.length}, next_node_address: ${next_node_address}, read_key: ${read_key}, data_read: ${data_read}`)
+			console.log(`find_matching_key_in_linked_list(): next_node_address == "null": ${next_node_address == "null"}, read_key == input_key: ${read_key == input_key}`)
+			console.log("<".repeat(100))
+			if (read_key == input_key){
+				key_found = true
 				break
 			} else if (next_node_address == "null"){
-				address_of_writable_node = address_of_current_data_point
+				key_found = false
 				break
 			} else {
-				address_of_current_data_point = Number(next_node_address)
+				current_data_point_address = Number(next_node_address)
 			}
 		} else {
 			console.log(`find_matching_key_in_linked_list(): unable to traverse or continue traversing linked list`)
 			break
 		}
 	}
-	return [address_of_writable_node, new_write_or_update, data_read]
 
+	return [key_found, data_read]
+
+}
+
+
+function parse_value(data_point, HASH_TABLE_CONSTANTS){
+	let value_start_index = HASH_TABLE_CONSTANTS.VERSION_NUMBER_SIZE + HASH_TABLE_CONSTANTS.LIVE_STATUS_SIZE + HASH_TABLE_CONSTANTS.KEY_SIZE
+	let value_end_index = value_start_index + HASH_TABLE_CONSTANTS.VALUE_SIZE
+	let value = data_point.substring(value_start_index, value_end_index)
+	return value
 }
 
 

@@ -173,7 +173,7 @@ function write_data_in_hash_table(hash_table_file_descriptor, line_to_write, add
 
 function find_address_of_writable_node_of_linked_list(hash_table_file_descriptor, address_at_index_cell, new_key, HASH_TABLE_CONSTANTS){
 	let address_of_writable_node = "null"
-	let address_of_current_data_point = address_at_index_cell
+	let current_data_point_address = address_at_index_cell
 	let new_write_or_update = "NEW_WRITE"
 	let data_read = ""
 
@@ -181,7 +181,7 @@ function find_address_of_writable_node_of_linked_list(hash_table_file_descriptor
 		
 		let _data_point_size = HASH_TABLE_CONSTANTS.DATA_POINT_SIZE
 		let data_buffer = Buffer.alloc(_data_point_size)
-		let num_bytes_read = fs.readSync(hash_table_file_descriptor, data_buffer, 0, _data_point_size, address_of_current_data_point)
+		let num_bytes_read = fs.readSync(hash_table_file_descriptor, data_buffer, 0, _data_point_size, current_data_point_address)
 		
 		if(num_bytes_read > 0){
 			data_read = data_buffer.toString('utf-8')
@@ -195,14 +195,14 @@ function find_address_of_writable_node_of_linked_list(hash_table_file_descriptor
 			console.log(`find_address_of_writable_node_of_linked_list(): next_node_address == "null": ${next_node_address == "null"}, read_key == new_key: ${read_key == new_key}`)
 			console.log("x".repeat(100))
 			if (read_key == new_key){
-				address_of_writable_node = address_of_current_data_point
+				address_of_writable_node = current_data_point_address
 				new_write_or_update = "UPDATE"
 				break
 			} else if (next_node_address == "null"){
-				address_of_writable_node = address_of_current_data_point
+				address_of_writable_node = current_data_point_address
 				break
 			} else {
-				address_of_current_data_point = Number(next_node_address)
+				current_data_point_address = Number(next_node_address)
 			}
 		} else {
 			console.log(`find_address_of_writable_node_of_linked_list(): unable to traverse or continue traversing linked list`)
