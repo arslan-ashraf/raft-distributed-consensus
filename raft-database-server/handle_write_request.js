@@ -34,10 +34,10 @@ function send_write_to_leader_helper(json_data, LEADER_ADDRESS, CURRENT_NODE_ADD
 			console.log(`DB SERVER - send_write_to_leader_helper(): sending write to raft leader ${LEADER_ADDRESS} at ${get_timestamp()}`)
 			const payload = {
 				"sender": `${CURRENT_NODE_ADDRESS}`,
-				"message_type": "WRITE_REQUEST_TO_LEADER",
+				"message_type": `WRITE_REQUEST_TO_LEADER`,
 				"key": json_data.key,
 				"value": json_data.value || "",
-				"request_type": request_type
+				"request_type": json_data.method
 			}
 			client_socket.write(JSON.stringify(payload))
 		})
@@ -54,8 +54,8 @@ function send_write_to_leader_helper(json_data, LEADER_ADDRESS, CURRENT_NODE_ADD
 					console.log(`DB SERVER - send_write_to_leader_helper(): sender doesn't know the leader, message from ${server_response.sender} at ${get_timestamp()}`)
 				}
 				reject(leader_address)
-			} else if (server_response.message_type == (`${request_type}_SUCCESS`)){
-				resolve(`${request_type}_SUCCESS`)
+			} else if (server_response.message_type == (`${json_data.method}_SUCCESS`)){
+				resolve(`${json_data.method}_SUCCESS`)
 			}
 
 			client_socket.destroy()

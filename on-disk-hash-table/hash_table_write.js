@@ -10,10 +10,13 @@ function write_to_hash_table(
 	hash_table_file_descriptor, lines_to_write, HASH_TABLE_CONSTANTS, RAFT_LOG_CONSTANTS
 ){
 
+	console.log("-".repeat(40) + " WRITING TO HASH TABLE " + "-".repeat(40))
 	for(let i = 0; i < lines_to_write.length; i++){
 
 		let data_point = parse_line_of_log(lines_to_write[i], RAFT_LOG_CONSTANTS)
+		console.log(`write_to_hash_table(): lines_to_write[i]: ${lines_to_write[i]}, data_point: ${data_point}`)
 		let line_to_write = assemble_line_to_write(data_point, HASH_TABLE_CONSTANTS)
+
 		console.log(`write_to_hash_table(): line_to_write: ${line_to_write}`)
 
 		let key = data_point[2]
@@ -66,22 +69,56 @@ function write_to_hash_table(
 
 function parse_line_of_log(line, RAFT_LOG_CONSTANTS){
 	let log_start_index = 0
-	let log_end_index = log_start_index + RAFT_LOG_CONSTANTS.log_index_size
+	let log_end_index = log_start_index + RAFT_LOG_CONSTANTS.LOG_INDEX_SIZE
 	let _log_index = line.substring(log_start_index, log_end_index).trim()
 
 	let term_start_index = log_end_index
-	let term_end_index = term_start_index + RAFT_LOG_CONSTANTS.term_size
+	let term_end_index = term_start_index + RAFT_LOG_CONSTANTS.TERM_SIZE
 	let _term = line.substring(term_start_index, term_end_index).trim()
 
 	let key_start_index = term_end_index
-	let key_end_index = key_start_index + RAFT_LOG_CONSTANTS.key_size
+	let key_end_index = key_start_index + RAFT_LOG_CONSTANTS.KEY_SIZE
 	let _key = line.substring(key_start_index, key_end_index).trim()
 
 	let value_start_index = key_end_index
-	let value_end_index = value_start_index + RAFT_LOG_CONSTANTS.value_size
+	let value_end_index = value_start_index + RAFT_LOG_CONSTANTS.VALUE_SIZE
 	let _value = line.substring(value_start_index, value_end_index).trim()
 
-	return [_log_index, _term, _key, _value]
+	let live_status_start_index = value_end_index
+	let live_status_end_index = live_status_start_index + RAFT_LOG_CONSTANTS.LIVE_STATUS_SIZE
+	let _live_status = line.substring(live_status_start_index, live_status_end_index).trim()
+
+	return [_log_index, _term, _key, _value, _live_status]
+}
+
+
+// data_point: [_log_index, _term, _key, _value, _live_status]
+function assemble_line_to_write(data_point, HASH_TABLE_CONSTANTS){
+	
+	let term = data_point[1]	// not needed
+	
+	let version_number = data_point[0] 			// log_index will be the version_number, already a string
+	let version_number_num_blanks = HASH_TABLE_CONSTANTS.VERSION_NUMBER_SIZE - version_number.length
+	version_number += " ".repeat(version_number_num_blanks)
+
+	let live_status = data_point[4]
+	let live_status_num_blanks = HASH_TABLE_CONSTANTS.LIVE_STATUS_SIZE - live_status.length
+	live_status += " ".repeat(live_status_num_blanks)
+
+	let key = data_point[2]
+	let key_num_blanks = HASH_TABLE_CONSTANTS.KEY_SIZE - key.length
+	key += " ".repeat(key_num_blanks)
+
+	let value = data_point[3]
+	let value_num_blanks = HASH_TABLE_CONSTANTS.VALUE_SIZE - value.length
+	value += " ".repeat(value_num_blanks)
+
+	let next_pointer = "null"
+	let next_pointer_num_blanks = HASH_TABLE_CONSTANTS.NEXT_NODE_POINTER_SIZE - next_pointer.length
+	next_pointer += " ".repeat(next_pointer_num_blanks)
+
+	return "\n" + version_number + live_status + key + value + next_pointer
+
 }
 
 
@@ -131,35 +168,6 @@ function write_address_in_index_cell(
 	fs.writeSync(hash_table_file_descriptor, index_cell_buffer, 0, index_cell_buffer.byteLength, index_cell_position)
 
 	return stats.size // numerical address_of_data_to_write
-}
-
-
-function assemble_line_to_write(data_point, HASH_TABLE_CONSTANTS){
-	
-	let term = data_point[1]	// not needed
-	
-	let version_number = data_point[0] 			// already a string
-	let version_number_num_blanks = HASH_TABLE_CONSTANTS.VERSION_NUMBER_SIZE - version_number.length
-	version_number += " ".repeat(version_number_num_blanks)
-
-	let live_status = "PRESENT"
-	let live_status_num_blanks = HASH_TABLE_CONSTANTS.LIVE_STATUS_SIZE - live_status.length
-	live_status += " ".repeat(live_status_num_blanks)
-
-	let key = data_point[2]
-	let key_num_blanks = HASH_TABLE_CONSTANTS.KEY_SIZE - key.length
-	key += " ".repeat(key_num_blanks)
-
-	let value = data_point[3]
-	let value_num_blanks = HASH_TABLE_CONSTANTS.VALUE_SIZE - value.length
-	value += " ".repeat(value_num_blanks)
-
-	let next_pointer = "null"
-	let next_pointer_num_blanks = HASH_TABLE_CONSTANTS.NEXT_NODE_POINTER_SIZE - next_pointer.length
-	next_pointer += " ".repeat(next_pointer_num_blanks)
-
-	return "\n" + version_number + live_status + key + value + next_pointer
-
 }
 
 
@@ -248,11 +256,15 @@ function write_address_of_next_node(hash_table_file_descriptor, address_of_last_
 
 function initialize_hash_table_file(hash_table_file_descriptor, HASH_TABLE_CONSTANTS){
 
-	let hash_table_index_header = "///////////////////////////////////////// INDEX SECTION ///////////////////////////////////////////\n\n"
-	let hash_table_data_header = "///////////////////////////////////////// DATA SECTION ////////////////////////////////////////////\n\n"
-	let hash_table_data_format = `---------------------------------------------------------------------------------------------------
- verion_number 10 bytes | status 10 bytes | key 20 bytes | value 49 bytes | pointer 10 | \\n 1 byte 
----------------------------------------------------------------------------------------------------\n`
+	let hash_table_index_header = `///////////////////////////////////////// INDEX SECTION ////////////////////////////////////////////
+ -------- -------- -------- -------- -------- --------
+| cell 0 | cell 1 | cell 2 | cell 3 | cell 4 |   ...  |
+ -------- -------- -------- -------- -------- --------\n\n`
+
+	let hash_table_data_header = `///////////////////////////////////////// DATA SECTION /////////////////////////////////////////////\n\n`
+	let hash_table_data_format = `------------------------------------------------------------------------------------------------------
+verion_number 10 bytes | live_status 10 bytes | key 20 bytes | value 49 bytes | pointer 10 | \\n 1 byte
+------------------------------------------------------------------------------------------------------\n`
 	
 	let stats = fs.fstatSync(hash_table_file_descriptor)
 	let file_size = String(stats.size)

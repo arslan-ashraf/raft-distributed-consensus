@@ -106,39 +106,41 @@ function leader_read_missing_entries_on_follower(fd, leaders_log_last_index, fol
 function assemble_write(data_object, RAFT_LOG_CONSTANTS){
 
 	let _log_index = String(data_object.log_index)
-	let _log_index_num_spaces = RAFT_LOG_CONSTANTS.log_index_size - _log_index.length
+	let _log_index_num_spaces = RAFT_LOG_CONSTANTS.LOG_INDEX_SIZE - _log_index.length
 	_log_index += " ".repeat(_log_index_num_spaces)
 	
 	let _term = String(data_object.term)
-	let _term_num_spaces = RAFT_LOG_CONSTANTS.term_size - _term.length
+	let _term_num_spaces = RAFT_LOG_CONSTANTS.TERM_SIZE - _term.length
 	_term += " ".repeat(_term_num_spaces)
 
 	let _key = String(data_object.key)
-	let _key_num_spaces = RAFT_LOG_CONSTANTS.key_size - _key.length
+	let _key_num_spaces = RAFT_LOG_CONSTANTS.KEY_SIZE - _key.length
 	_key += " ".repeat(_key_num_spaces)
 
 	let _value = String(data_object.value)
-	let _value_num_spaces = RAFT_LOG_CONSTANTS.value_size - _value.length
+	let _value_num_spaces = RAFT_LOG_CONSTANTS.VALUE_SIZE - _value.length
 	_value += " ".repeat(_value_num_spaces)
 
 	let _live_status;
 	if (data_object.request_type == "WRITE"){
 		_live_status = "PRESENT"
-	} else {
-
+	} else if (data_object.request_type == "DELETE") {
+		_live_status = "DELETED"
 	}
+	let _live_status_num_spaces = RAFT_LOG_CONSTANTS.LIVE_STATUS_SIZE - _live_status.length
+	_live_status += " ".repeat(_live_status_num_spaces)
 
-	return _log_index + _term + _key + _value + "\n"
+	return _log_index + _term + _key + _value + _live_status + "\n"
 }
 
 
 function initialize_log_file(log_file_descriptor){
 
-	let log_initial_text = ` -------------------------------------------------------------------------------------------------
+	let log_initial_text = ` --------------------------------------------------------------------------------------------------
 | log_index 15 bytes | term 5 bytes | key 20 bytes | value 49 bytes | status 10 bytes | \\n 1 byte |
- -------------------------------------------------------------------------------------------------
+ --------------------------------------------------------------------------------------------------
 
-log_index 	   term		 key 				 value 											  live_status\n\n`
+log_index 	   term	key 				value 											 live_status\n\n`
 
 	let stats = fs.fstatSync(log_file_descriptor)
 	let file_size = String(stats.size)

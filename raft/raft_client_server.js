@@ -73,25 +73,21 @@ console.log(`current working dir: ${process.cwd()}`)
 console.log(`parent of current working dir: ${path.dirname(process.cwd())}`)
 
 // the log is an append only file each line in the log file is one entry and each entry is immutable
-// log entries are of type: term, log_index, key, and value
-// the first two are monotonically increasing
+// log entries are of type: term, log_index, key, value, and live_status
+// the first two are monotonically increasing, live_status tells us whether the key has been deleted
 // in the hash table on disk, the version number is equal to the log_index to distinguish
 // between new and stale writes on different nodes if followers have different
 // values for the same key
-// log entries look like this (each entry is 100 bytes):
-//  ----------------------------------------------------------------------------------
-// | "\n" 1 byte | log_index 20 bytes | term 10 bytes | key 20 bytes | value 49 bytes |
-//  ----------------------------------------------------------------------------------
 
 // 100 bytes because that is the size of each log entry
 let data_point_size = 100 		// data that will be appended to the log is this size
 
 const RAFT_LOG_CONSTANTS = {
-	"log_index_size": 15,
-	"term_size": 5,
-	"key_size": 20,
-	"value_size": 49,
-	"live_status": 10
+	"LOG_INDEX_SIZE": 15,
+	"TERM_SIZE": 5,
+	"KEY_SIZE": 20,
+	"VALUE_SIZE": 49,
+	"LIVE_STATUS_SIZE": 10
 }
 
 const log_file_path = path.join(process.cwd(), "raft-files", `${SERVER_PORT}-log.txt`)
@@ -101,7 +97,7 @@ initialize_log_file(log_file_descriptor)
 const HASH_TABLE_CONSTANTS = {
 	"HASH_TABLE_MAX_ENTRIES": 5,
 	"NUM_BYTES_PER_ADDRESS": 10,
-	"HASH_TABLE_HEADER_SIZE": 100,
+	"HASH_TABLE_HEADER_SIZE": 268,
 	"DATA_POINT_SIZE": 100,
 	"VERSION_NUMBER_SIZE": 10,
 	"LIVE_STATUS_SIZE": 10,
@@ -196,7 +192,8 @@ server.on("connection", (server_socket) => {
 				console.log(`=======> WRITE_REQUEST_TO_LEADER coming to ${CURRENT_NODE_ADDRESS} who is a ${CURRENT_NODE_STATE} at ${get_timestamp()} <=======`)
 
 				log_last_index += 1
-				let data_object = { "log_index": log_last_index, "term": term, "key": data.key, "value": data.value, "request_type": data.request_type }
+				let data_object = { "log_index": log_last_index, "term": term, "key": data.key, 
+									"value": data.value, "request_type": data.request_type }
 
 				console.log(`%%%%%%%% leaders term: ${term} $$$$$$$$$$$`)
 				write_and_replicate_write_to_followers(

@@ -72,13 +72,13 @@ async function write_and_replicate_write_to_followers(
 		append_writes_to_log([line_to_append], leader_log_file_path)
 		
 		console.log(`!!!!!!!!!!! QUORUM satisfied: leader has written to its log !!!!!!!!!!!`)
-		payload.message_type = "WRITE_SUCCESS"
+		payload.message_type = `${data_object.request_type}_SUCCESS`  	// either WRITE OR DELETE
 	
 		/////////////////// LEADER WRITES TO HASH TABLE HERE ////////////////////
 		write_to_hash_table(hash_table_file_descriptor, [line_to_append], HASH_TABLE_CONSTANTS, RAFT_LOG_CONSTANTS)
 
 	} else {
-		payload.message_type = "WRITE_FAILED"
+		payload.message_type = `${data_object.request_type}_FAILED`  	// either WRITE OR DELETE
 	}
 
 	server_socket.write(JSON.stringify(payload))
@@ -169,12 +169,16 @@ function replicate_write_to_follower_promise(PEERS, CURRENT_NODE_ADDRESS, data_o
 // then the follower will send its highest log index, letting the leader know
 // how far behind it is, the leader then sends another write to followers that are behind
 // with all of the log entries the lagging follower(s) is missing
-async function replicate_writes_to_lagging_followers(lagging_followers, CURRENT_NODE_ADDRESS, log_last_index, leader_log_file_descriptor, data_object, RAFT_LOG_CONSTANTS, data_point_size){
+async function replicate_writes_to_lagging_followers(
+	lagging_followers, CURRENT_NODE_ADDRESS, log_last_index, 
+	leader_log_file_descriptor, data_object, RAFT_LOG_CONSTANTS, data_point_size
+){
 	
 	let replicate_log_successes = []
 	let replicate_log_promises = gather_writes_to_lagging_followers_promises(
-		lagging_followers, CURRENT_NODE_ADDRESS, log_last_index, leader_log_file_descriptor, 
-		data_object, RAFT_LOG_CONSTANTS, data_point_size)
+		lagging_followers, CURRENT_NODE_ADDRESS, log_last_index, 
+		leader_log_file_descriptor, data_object, RAFT_LOG_CONSTANTS, data_point_size
+	)
 
 	await Promise.allSettled(replicate_log_promises).then((all_promise_results) => {
 
@@ -194,12 +198,19 @@ async function replicate_writes_to_lagging_followers(lagging_followers, CURRENT_
 
 
 // only the leader calls this function (indirectly) and CURRENT_NODE_ADDRESS is the leader's address
-function gather_writes_to_lagging_followers_promises(lagging_followers, CURRENT_NODE_ADDRESS, log_last_index, leader_log_file_descriptor, data_object, RAFT_LOG_CONSTANTS, data_point_size){
+function gather_writes_to_lagging_followers_promises(
+	lagging_followers, CURRENT_NODE_ADDRESS, log_last_index, 
+	leader_log_file_descriptor, data_object, RAFT_LOG_CONSTANTS, data_point_size
+){
 	
 	let replicate_log_promises = []
 
 	for(let i = 0; i < lagging_followers.length; i++){
-		let replicate_log_promise = replicate_writes_to_lagging_follower_helper(lagging_followers, CURRENT_NODE_ADDRESS, log_last_index, leader_log_file_descriptor, data_object, RAFT_LOG_CONSTANTS, data_point_size, i)
+		let replicate_log_promise = replicate_writes_to_lagging_follower_helper(
+			lagging_followers, CURRENT_NODE_ADDRESS, log_last_index, 
+			leader_log_file_descriptor, data_object, RAFT_LOG_CONSTANTS, 
+			data_point_size, i
+		)
 		replicate_log_promise.then((promise_result) => {		// promise_result is the value passed to Promise's resolve() function
 			console.log(`gather_writes_to_lagging_followers_promises(): replicate_log_promise then() function, value of promise_result: ${promise_result} at ${get_timestamp()}`)
 		}).catch((error) => {
@@ -213,7 +224,11 @@ function gather_writes_to_lagging_followers_promises(lagging_followers, CURRENT_
 
 
 // only the leader calls this function (indirectly) and CURRENT_NODE_ADDRESS is the leader's address
-function replicate_writes_to_lagging_follower_helper(lagging_followers, CURRENT_NODE_ADDRESS, log_last_index, leader_log_file_descriptor, data_object, RAFT_LOG_CONSTANTS, data_point_size, index){
+function replicate_writes_to_lagging_follower_helper(
+	lagging_followers, CURRENT_NODE_ADDRESS, log_last_index, 
+	leader_log_file_descriptor, data_object, RAFT_LOG_CONSTANTS, 
+	data_point_size, index
+){
 
 	let lagging_follower_address = lagging_followers[index].follower_address
 	let lagging_follower_log_last_index = lagging_followers[index].followers_log_last_index
