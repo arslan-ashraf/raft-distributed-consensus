@@ -14,10 +14,10 @@ async function send_read_to_raft_cluster(key, RAFT_CLUSTER, CURRENT_NODE_ADDRESS
 		
 		let raft_cluster_responses = []
 		all_promise_results.map((promise_result) => {
-			if (promise_result.value.message_type == "KEY_FOUND"){
+			if (promise_result.value && promise_result.value.message_type == "KEY_FOUND"){
 				raft_cluster_responses.push([promise_result.value.version_number, promise_result.value.value])
-			} else if (promise_result.value.message_type == "KEY_NOT_FOUND"){
-				console.log(`DB SERVER - Raft node ${promise_result.value.sender} could not find a matching key`)
+			} else if (promise_result.reason && promise_result.reason.message_type == "KEY_NOT_FOUND"){
+				console.log(`DB SERVER - Raft node ${promise_result.reason.sender} could not find a matching key`)
 			}
 		})
 

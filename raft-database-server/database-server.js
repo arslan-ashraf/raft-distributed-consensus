@@ -44,33 +44,39 @@ const database_server = http.createServer((request, response) => {
 
 				console.log(`Received JSON:`, json_data)
 				console.log(`==== LEADER_ADDRESS: ${LEADER_ADDRESS} ====`)
-					
-				send_write_to_leader(
-					json_data, LEADER_ADDRESS, CURRENT_NODE_ADDRESS, response
-				).catch((error) => {	// error here is the input to the Promise's reject() function
-						
-					let new_leader = error
-					
-					if (LEADER_ADDRESS == null || new_leader.length == 0){
-						console.log(`Promise rejected because leader at address ${LEADER_ADDRESS} could not be reached, finding the new leader at ${get_timestamp()}`)
-						
-						db_server_find_leader().then(() => {
 
-							console.log(`------> This should run after finding the new leader: ${LEADER_ADDRESS} at ${get_timestamp()}`)
-							if (LEADER_ADDRESS != null){
-								send_write_to_leader(json_data, LEADER_ADDRESS, CURRENT_NODE_ADDRESS, response)
-							} else {
-								response.writeHead(400, { 'Content-Type': 'application/json' })
-								response.end(JSON.stringify({ error: 'Database Server - WRITE_FAILED' }))
-							}
-						})
+				if (json_data.method == "write"){
+
+					send_write_to_leader(
+						json_data, LEADER_ADDRESS, CURRENT_NODE_ADDRESS, response
+					).catch((error) => {	// error here is the input to the Promise's reject() function
+							
+						let new_leader = error
 						
-					} else {
-						console.log(`Promise rejected because leadership has changed and the new leader is ${new_leader}`)
-						LEADER_ADDRESS = new_leader
-						send_write_to_leader(json_data, LEADER_ADDRESS, CURRENT_NODE_ADDRESS, response)
-					}
-				})
+						if (LEADER_ADDRESS == null || new_leader.length == 0){
+							console.log(`Promise rejected because leader at address ${LEADER_ADDRESS} could not be reached, finding the new leader at ${get_timestamp()}`)
+							
+							db_server_find_leader().then(() => {
+
+								console.log(`------> This should run after finding the new leader: ${LEADER_ADDRESS} at ${get_timestamp()}`)
+								if (LEADER_ADDRESS != null){
+									send_write_to_leader(json_data, LEADER_ADDRESS, CURRENT_NODE_ADDRESS, response)
+								} else {
+									response.writeHead(400, { 'Content-Type': 'application/json' })
+									response.end(JSON.stringify({ error: 'Database Server - WRITE_FAILED' }))
+								}
+							})
+							
+						} else {
+							console.log(`Promise rejected because leadership has changed and the new leader is ${new_leader}`)
+							LEADER_ADDRESS = new_leader
+							send_write_to_leader(json_data, LEADER_ADDRESS, CURRENT_NODE_ADDRESS, response)
+						}
+					})
+
+				} else if (json_data.method == "delete"){
+					
+				}
 
 			} catch (error) {
 				response.writeHead(400, { 'Content-Type': 'application/json' })
