@@ -2,9 +2,9 @@ const net = require("net")
 const get_timestamp = require("../raft/get_timestamp")
 
 
-async function send_write_to_leader(
-	json_data, LEADER_ADDRESS, CURRENT_NODE_ADDRESS, client_response_payload, response
-){
+async function send_write_to_leader(json_data, LEADER_ADDRESS, CURRENT_NODE_ADDRESS, response){
+
+	let client_response_payload = {}
 	let write_promise_response = await send_write_to_leader_helper(json_data, LEADER_ADDRESS, CURRENT_NODE_ADDRESS)
 	console.log(`db-server send_write_to_leader(): write_promise_response at ${get_timestamp()}: ${write_promise_response}`)
 	client_response_payload["response"] = write_promise_response
@@ -12,6 +12,7 @@ async function send_write_to_leader(
 	response.writeHead(200, { 'Content-Type': 'application/json' })
 	response.end(JSON.stringify(client_response_payload))
 	console.log("=".repeat(100))
+	
 }
 
 

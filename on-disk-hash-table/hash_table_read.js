@@ -6,6 +6,7 @@ const crypto = require("crypto")
 function read_from_hash_table(hash_table_file_descriptor, key, HASH_TABLE_CONSTANTS){
 
 	let key_found = false
+	let version_number = -1
 	let value = ""
 	
 	let index_cell_position = find_index_cell_position(key, HASH_TABLE_CONSTANTS)
@@ -17,6 +18,8 @@ function read_from_hash_table(hash_table_file_descriptor, key, HASH_TABLE_CONSTA
 	let is_hash_collision = hash_collision_and_search_address[0]  		// boolean
 	let search_address = Number(hash_collision_and_search_address[1]) 	// either "" or address number
 
+	// there must be a hash collision in the code if the key/value exists
+	// but there might be a hash collision even if the key doesn't exist
 	if (is_hash_collision == true){
 		let key_found_and_data = find_matching_key_in_linked_list(
 			hash_table_file_descriptor, key, search_address, HASH_TABLE_CONSTANTS
@@ -26,7 +29,16 @@ function read_from_hash_table(hash_table_file_descriptor, key, HASH_TABLE_CONSTA
 		let data_point = key_found_and_data[1]
 
 		if (key_found == true){
-			value = parse_value(data_point, HASH_TABLE_CONSTANTS)
+			let version_number_liveness_value = parse_version_number_liveness_value(
+				data_point, HASH_TABLE_CONSTANTS
+			)
+
+			let liveness_status = version_number_liveness_value[1]
+
+			if (liveness_status == "true"){
+				version_number = version_number_liveness_value[0]
+				value = version_number_liveness_value[2]
+			}
 		}
 	}
 
@@ -107,12 +119,45 @@ function find_matching_key_in_linked_list(hash_table_file_descriptor, input_key,
 }
 
 
-function parse_value(data_point, HASH_TABLE_CONSTANTS){
+function parse_version_number_liveness_value(data_point, HASH_TABLE_CONSTANTS){
+	let version_number_end_index = HASH_TABLE_CONSTANTS.VERSION_NUMBER_SIZE
+	let version_number = Number(data_point.substring(0, version_number_end_index).trim())
+
+	let liveness_status_start_index = version_number_end_index
+	let liveness_status_end_index = liveness_status_start_index + HASH_TABLE_CONSTANTS.LIVE_STATUS_SIZE
+	let liveness_status = data_point.substring(liveness_status_start_index, liveness_status_end_index).trim()
+
 	let value_start_index = HASH_TABLE_CONSTANTS.VERSION_NUMBER_SIZE + HASH_TABLE_CONSTANTS.LIVE_STATUS_SIZE + HASH_TABLE_CONSTANTS.KEY_SIZE
 	let value_end_index = value_start_index + HASH_TABLE_CONSTANTS.VALUE_SIZE
-	let value = data_point.substring(value_start_index, value_end_index)
-	return value
+	let value = data_point.substring(value_start_index, value_end_index).trim()
+
+	return [version_number, liveness_status, value]
 }
 
 
-module.exports = read_from_hash_table
+function assemble_read_payload(read_result, CURRENT_NODE_ADDRESS){
+
+	let payload = { "sender": CURRENT_NODE_ADDRESS }
+
+	let key_found = read_result[0]
+	let version_number = read_result[1]
+	let value = read_result[2]
+
+	if (key_found == true){
+
+		payload.message_type = "KEY_FOUND"
+		payload.version_number = version_number
+		payload.value = value
+
+	} else if (key_found == false){
+
+		payload.message_type = "KEY_NOT_FOUND"
+
+	}
+
+	return payload
+
+}
+
+
+module.exports = { read_from_hash_table, assemble_read_payload }

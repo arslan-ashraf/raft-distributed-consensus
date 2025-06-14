@@ -37,6 +37,11 @@ const {
 
 const { initialize_hash_table_file } = require("../on-disk-hash-table/hash_table_write")
 
+const { 
+	read_from_hash_table, 
+	assemble_read_payload 
+} = require("../on-disk-hash-table/hash_table_read")
+
 const SERVER_PORT = Number(process.argv[2])
 const SERVER_IP_ADDRESS = "127.0.0.1"
 const CURRENT_NODE_ADDRESS = `${SERVER_IP_ADDRESS}:${SERVER_PORT}`
@@ -260,6 +265,16 @@ server.on("connection", (server_socket) => {
 				"message_type": "CATCHUP_FOLLOWER_LOG_RESPONSE",
 				"missing_entries_in_log": missing_entries
 			}
+
+			server_socket.write(JSON.stringify(payload))
+
+		} else if (message_type == "READ_KEY_REQUEST"){   // all raft servers receive this message
+
+			console.log(`${CURRENT_NODE_STATE} ${CURRENT_NODE_ADDRESS} received a READ_KEY_REQUEST message from DB server ${data.sender} at ${get_timestamp()}`)
+
+			let read_result = read_from_hash_table(hash_table_file_descriptor, data.key, HASH_TABLE_CONSTANTS)
+
+			let payload = assemble_read_payload(read_result, CURRENT_NODE_ADDRESS)
 
 			server_socket.write(JSON.stringify(payload))
 
