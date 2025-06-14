@@ -1,8 +1,14 @@
 const fs = require("fs")
 const get_timestamp = require("../get_timestamp")
+const { write_to_hash_table } = require("../../on-disk-hash-table/hash_table_write")
+
 
 // followers call this function
-function handle_write_to_follower(CURRENT_NODE_ADDRESS, CURRENT_NODE_STATE, data, followers_log_last_index, log_file_path, hash_table_file_descriptor, RAFT_LOG_CONSTANTS){
+function handle_write_to_follower(
+	CURRENT_NODE_ADDRESS, CURRENT_NODE_STATE, data, followers_log_last_index, 
+	log_file_path, hash_table_file_descriptor, RAFT_LOG_CONSTANTS, 
+	HASH_TABLE_CONSTANTS
+){
 
 	let payload = { "sender": CURRENT_NODE_ADDRESS }
 	let leaders_log_last_index = data.log_index
@@ -13,11 +19,12 @@ function handle_write_to_follower(CURRENT_NODE_ADDRESS, CURRENT_NODE_STATE, data
 		const data_to_write = { "log_index": data.log_index, "term": data.term,
 								"key": data.key, "value": data.value }
 
+		/////////////////// FOLLOWER APPENDS TO THE LOG HERE ////////////////////
 		const line_to_append = assemble_write(data_to_write, RAFT_LOG_CONSTANTS)								
 		append_writes_to_log([line_to_append], log_file_path, RAFT_LOG_CONSTANTS)
 
-		/////////////////// FOLLOWER writes to hash table here ////////////////////
-		// write_to_hash_table(hash_table_file_descriptor, [line_to_append], CURRENT_NODE_ADDRESS, RAFT_LOG_CONSTANTS)
+		/////////////////// FOLLOWER WRITES TO HASH TABLE HERE ////////////////////
+		write_to_hash_table(hash_table_file_descriptor, [line_to_append], HASH_TABLE_CONSTANTS, RAFT_LOG_CONSTANTS)
 
 		payload.message_type = "WRITE_SUCCESS_ON_FOLLOWER"
 	} else {
@@ -29,14 +36,19 @@ function handle_write_to_follower(CURRENT_NODE_ADDRESS, CURRENT_NODE_STATE, data
 
 
 // followers call this function
-function handle_writes_to_lagging_followers(CURRENT_NODE_ADDRESS, missing_entries, follower_log_file_path){
+function handle_writes_to_lagging_followers(
+	CURRENT_NODE_ADDRESS, missing_entries, follower_log_file_path,
+	RAFT_LOG_CONSTANTS, HASH_TABLE_CONSTANTS
+){
 
 	console.log(`handle_writes_to_lagging_followers(): FOLLOWER ${CURRENT_NODE_ADDRESS} is missing the following entries at ${get_timestamp()}:\n`, missing_entries)
 	console.log(`handle_writes_to_lagging_followers(): follower_log_length: ${follower_log_length} - data.num_missing_entries: ${data.num_missing_entries}`)
 	
+	/////////////////// LAGGING FOLLOWER APPENDS TO THE LOG HERE ////////////////////
 	append_writes_to_log(missing_entries, follower_log_file_path)
 	
-	/////////////////// LAGGING FOLLOWER writes to hash table here ////////////////////
+	/////////////////// LAGGING FOLLOWER WRITES TO HASH TABLE HERE ////////////////////
+	write_to_hash_table(hash_table_file_descriptor, missing_entries, HASH_TABLE_CONSTANTS, RAFT_LOG_CONSTANTS)
 
 	console.log(`handle_writes_to_lagging_followers(): follower confirming that writes did not succeed`)
 	return [true, missing_entries[missing_entries.length - 1]]
@@ -113,6 +125,7 @@ function assemble_write(data_object, RAFT_LOG_CONSTANTS){
 
 
 function initialize_log_file(log_file_descriptor){
+
 	let log_initial_text = ` ----------------------------------------------------------------------------------
 |  log_index 20 bytes | term 10 bytes | key 20 bytes | value 49 bytes | \\n 1 byte  |
  ----------------------------------------------------------------------------------

@@ -11,7 +11,7 @@ const {
 const send_write_to_leader = require("./handle_write_request")
 
 // curl post request
-// curl "localhost:4000" -X POST -H 'Content-Type: application/json' -d '{ "method": "write", "key": "key_x1", "value": 1 }'
+// curl "localhost:4000" -X POST -H 'Content-Type: application/json' -d '{ "method": "write", "key": "key_1", "value": "value_1" }'
 
 // curl get request
 

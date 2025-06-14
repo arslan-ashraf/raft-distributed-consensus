@@ -35,6 +35,8 @@ const {
 	get_log_index_and_term 
 } = require("./raft-log-replication/read_end_of_log")
 
+const { initialize_hash_table_file } = require("../on-disk-hash-table/hash_table_write")
+
 const SERVER_PORT = Number(process.argv[2])
 const SERVER_IP_ADDRESS = "127.0.0.1"
 const CURRENT_NODE_ADDRESS = `${SERVER_IP_ADDRESS}:${SERVER_PORT}`
@@ -91,8 +93,21 @@ const log_file_path = path.join(process.cwd(), "raft-files", `${SERVER_PORT}-log
 const log_file_descriptor = fs.openSync(log_file_path, "rs+")
 initialize_log_file(log_file_descriptor)
 
+const HASH_TABLE_CONSTANTS = {
+	"HASH_TABLE_MAX_ENTRIES": 5,
+	"NUM_BYTES_PER_ADDRESS": 10,
+	"HASH_TABLE_HEADER_SIZE": 100,
+	"DATA_POINT_SIZE": 100,
+	"VERSION_NUMBER_SIZE": 10,
+	"LIVE_STATUS_SIZE": 10,
+	"KEY_SIZE": 20,
+	"VALUE_SIZE": 49,
+	"NEXT_NODE_POINTER_SIZE": 10
+}
+
 const hash_table_file_path = path.join(path.dirname(process.cwd()), "on-disk-hash-table", `${SERVER_PORT}-hash-table.txt`)
 const hash_table_file_descriptor = fs.openSync(hash_table_file_path, "rs+")
+initialize_hash_table_file(hash_table_file_descriptor, HASH_TABLE_CONSTANTS)
 
 let heartbeat_received = false
 
@@ -183,7 +198,8 @@ server.on("connection", (server_socket) => {
 				console.log(`%%%%%%%% leaders term: ${term} $$$$$$$$$$$`)
 				write_and_replicate_write_to_followers(
 					PEERS, CURRENT_NODE_ADDRESS, data_object, QUORUM, server_socket, payload, 
-					log_last_index, log_file_path, log_file_descriptor, data_point_size, RAFT_LOG_CONSTANTS
+					log_last_index, log_file_path, log_file_descriptor, data_point_size, RAFT_LOG_CONSTANTS, 
+					hash_table_file_descriptor, HASH_TABLE_CONSTANTS
 				)
 				
 			} else { // in case the current node is actually a follower
@@ -198,7 +214,12 @@ server.on("connection", (server_socket) => {
 
 			console.log(`${CURRENT_NODE_STATE} ${CURRENT_NODE_ADDRESS} received a REPLICATE_WRITE_TO_FOLLOWER message from LEADER ${data.sender} at ${get_timestamp()}`)
 			
-			let payload = handle_write_to_follower(CURRENT_NODE_ADDRESS, CURRENT_NODE_STATE, data, log_last_index, log_file_path, hash_table_file_descriptor, RAFT_LOG_CONSTANTS)
+			let payload = handle_write_to_follower(
+				CURRENT_NODE_ADDRESS, CURRENT_NODE_STATE, data, log_last_index, 
+				log_file_path, hash_table_file_descriptor, RAFT_LOG_CONSTANTS,
+				HASH_TABLE_CONSTANTS
+			)
+
 			log_last_index += 1
 			server_socket.write(JSON.stringify(payload))
 		
@@ -206,7 +227,11 @@ server.on("connection", (server_socket) => {
 
 			console.log(`${CURRENT_NODE_STATE} ${CURRENT_NODE_ADDRESS} received a REPLICATE_WRITES_TO_LAGGING_FOLLOWER message from LEADER ${data.sender} at ${get_timestamp()}`)
 	
-			let handled_writes = handle_writes_to_lagging_followers(CURRENT_NODE_ADDRESS, data.missing_log_entries, log_file_path)
+			let handled_writes = handle_writes_to_lagging_followers(
+				CURRENT_NODE_ADDRESS, data.missing_log_entries, log_file_path,
+				RAFT_LOG_CONSTANTS, HASH_TABLE_CONSTANTS
+			)
+
 			let bool_writes_succeeded = handled_writes[0]
 			
 			let payload = { "sender": CURRENT_NODE_ADDRESS }
@@ -286,7 +311,11 @@ if (CURRENT_NODE_STATE != "LEADER"){
 
 			if (LEADER_ADDRESS != null){
 
-				let catchup_promise = catchup_followers_log_at_startup(CURRENT_NODE_ADDRESS, log_last_index, log_file_path, LEADER_ADDRESS, RAFT_LOG_CONSTANTS)
+				let catchup_promise = catchup_followers_log_at_startup(
+					CURRENT_NODE_ADDRESS, log_last_index, log_file_path, 
+					LEADER_ADDRESS, RAFT_LOG_CONSTANTS, hash_table_file_descriptor, 
+					HASH_TABLE_CONSTANTS
+				)
 				
 				catchup_promise.then((promise_result) => {
 					console.log(`**************** promise_result: ${promise_result} ************`)
