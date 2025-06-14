@@ -3,13 +3,28 @@ const path = require("path")
 const crypto = require("crypto")
 
 
-function read_from_hash_table(hash_table_file_descriptor, key_to_read, HASH_TABLE_CONSTANTS){
-	let index_cell_position = find_index_cell_position(key_to_read, HASH_TABLE_CONSTANTS)
+function read_from_hash_table(hash_table_file_descriptor, key, HASH_TABLE_CONSTANTS){
+	
+	let index_cell_position = find_index_cell_position(key, HASH_TABLE_CONSTANTS)
 
-	let _does_key_exist_in_hash_table = does_key_exist_in_hash_table(hash_table_file_descriptor, index_cell_position, HASH_TABLE_CONSTANTS)
+	let key_and_data_address = does_key_exist_in_hash_table(
+		hash_table_file_descriptor, index_cell_position, HASH_TABLE_CONSTANTS
+	)
+
+	let does_key_exist = key_and_data_address[0]  			// boolean
+	let data_address = Number(key_and_data_address[1]) 		// either "" or address number
+
+	if (does_key_exist == true){
+		let key_found_and_value = find_matching_key_in_linked_list(
+			hash_table_file_descriptor, key, HASH_TABLE_CONSTANTS
+		)
+	}
+
 }
 
 
+// hashes the key, takes a modulo by max hash table size and calculates how 
+// at what byte offset starting from the file should this key's index be stored
 function find_index_cell_position(key, HASH_TABLE_CONSTANTS){
 	let hash_function = crypto.createHash("sha256")
 	hash_function.update(key)
@@ -18,20 +33,28 @@ function find_index_cell_position(key, HASH_TABLE_CONSTANTS){
 	let index_cell = hash_digest_decimal % HASH_TABLE_CONSTANTS.HASH_TABLE_MAX_ENTRIES
 	console.log(`find_index_cell_position(): index_cell: ${index_cell}`)
 	let index_cell_position = HASH_TABLE_CONSTANTS.HASH_TABLE_HEADER_SIZE + (index_cell * HASH_TABLE_CONSTANTS.NUM_BYTES_PER_ADDRESS) + 1
-	return index_cell_position
+	return index_cell_position  	// in bytes
 }
+
 
 function does_key_exist_in_hash_table(hash_table_file_descriptor, index_cell_position, HASH_TABLE_CONSTANTS){
 	let index_cell_size = HASH_TABLE_CONSTANTS.NUM_BYTES_PER_ADDRESS
-	let index_read_buffer = Buffer.alloc(index_cell_size)
-	let cell_index_num_bytes_read = fs.readSync(hash_table_file_descriptor, index_read_buffer, 0, index_cell_size, index_cell_position)
+	let index_cell_read_buffer = Buffer.alloc(index_cell_size)
+	let cell_index_num_bytes_read = fs.readSync(hash_table_file_descriptor, index_cell_read_buffer, 0, index_cell_size, index_cell_position)
 	let index_cell_read = ""
 	if (cell_index_num_bytes_read > 0){
-		index_cell_read = index_read_buffer.toString('utf-8').trim()
+		index_cell_read = index_cell_read_buffer.toString('utf-8').trim()
 		console.log(`does_key_exist_in_hash_table(): is index_cell_read in the hash table? index_cell_read.length ${index_cell_read.length}, index_cell_read: ${index_cell_read}`)
 		if(index_cell_read.length == 0) return [false, index_cell_read]
 	}
 	return [true, index_cell_read]
+}
+
+
+function find_matching_key_in_linked_list(hash_table_file_descriptor, key, HASH_TABLE_CONSTANTS){
+
+	
+	
 }
 
 

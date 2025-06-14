@@ -99,11 +99,11 @@ function find_index_cell_position(key, HASH_TABLE_CONSTANTS){
 
 function index_cell_hash_collision(hash_table_file_descriptor, index_cell_position, HASH_TABLE_CONSTANTS){
 	let index_cell_size = HASH_TABLE_CONSTANTS.NUM_BYTES_PER_ADDRESS
-	let index_read_buffer = Buffer.alloc(index_cell_size)
-	let cell_index_num_bytes_read = fs.readSync(hash_table_file_descriptor, index_read_buffer, 0, index_cell_size, index_cell_position)
+	let index_cell_read_buffer = Buffer.alloc(index_cell_size)
+	let cell_index_num_bytes_read = fs.readSync(hash_table_file_descriptor, index_cell_read_buffer, 0, index_cell_size, index_cell_position)
 	let index_cell_read = ""
 	if (cell_index_num_bytes_read > 0){
-		index_cell_read = index_read_buffer.toString('utf-8').trim()
+		index_cell_read = index_cell_read_buffer.toString('utf-8').trim()
 		console.log(`hash_collision_bool(): is index_cell_read already taken? index_cell_read.length ${index_cell_read.length}, index_cell_read: ${index_cell_read}`)
 		if(index_cell_read.length == 0) return [false, index_cell_read]
 	}
