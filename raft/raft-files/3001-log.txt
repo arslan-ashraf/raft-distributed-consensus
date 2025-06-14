@@ -1,19 +1,6 @@
- ----------------------------------------------------------------------------------
-|  log_index 20 bytes | term 10 bytes | key 20 bytes | value 49 bytes | \n 1 byte  |
- ----------------------------------------------------------------------------------
+ -------------------------------------------------------------------------------------------------
+| log_index 15 bytes | term 10 bytes | key 20 bytes | value 49 bytes | status 5 bytes | \n 1 byte |
+ -------------------------------------------------------------------------------------------------
 
-log_index			term	  key 				  value
+log_index 	   term		 key 				 value 											  status
 
-1                   1         key_1               value_1                                          
-2                   1         key_2               value_2                                          
-3                   1         key_3               value_3                                          
-4                   1         key_4               value_4                                          
-5                   1         key_5               value_5                                          
-6                   1         key_6               value_6                                          
-7                   1         key_7               value_7                                          
-8                   3         key_8               value_8                                          
-9                   3         key_9               value_9                                          
-10                  3         key_1               value_1000                                       
-11                  4         key_123456          abcdef                                           
-12                  4         key_7               sldkfjsfkl                                       
-13                  4         key_5               value of key 5                                   

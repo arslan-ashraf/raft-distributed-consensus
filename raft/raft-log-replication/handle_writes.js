@@ -126,11 +126,11 @@ function assemble_write(data_object, RAFT_LOG_CONSTANTS){
 
 function initialize_log_file(log_file_descriptor){
 
-	let log_initial_text = ` ----------------------------------------------------------------------------------
-|  log_index 20 bytes | term 10 bytes | key 20 bytes | value 49 bytes | \\n 1 byte  |
- ----------------------------------------------------------------------------------
+	let log_initial_text = ` -------------------------------------------------------------------------------------------------
+| log_index 15 bytes | term 10 bytes | key 20 bytes | value 49 bytes | status 5 bytes | \\n 1 byte |
+ -------------------------------------------------------------------------------------------------
 
-log_index			term	  key 				  value\n\n`
+log_index 	   term		 key 				 value 											  status\n\n`
 
 	let stats = fs.fstatSync(log_file_descriptor)
 	let file_size = String(stats.size)
