@@ -10,14 +10,14 @@ async function send_read_to_raft_cluster(key, RAFT_CLUSTER, CURRENT_NODE_ADDRESS
 
 	await Promise.allSettled(read_request_promises).then((all_promise_results) => {
 		
-		console.log(`DB SERVER - send_read_to_raft_cluster(): all_promise_results at ${get_timestamp()}: ${all_promise_results}`)
+		console.log(`DB SERVER - send_read_to_raft_cluster(): all_promise_results at ${get_timestamp()}:`, all_promise_results)
 		
 		let raft_cluster_responses = []
 		all_promise_results.map((promise_result) => {
-			if (promise_result.message_type == "KEY_FOUND"){
-				raft_cluster_responses.push([promise_result.version_number, promise_result.value])
-			} else if (promise_result.message_type == "KEY_NOT_FOUND"){
-				console.log(`DB SERVER - Raft node ${promise_result.sender} did not return a read response`)
+			if (promise_result.value.message_type == "KEY_FOUND"){
+				raft_cluster_responses.push([promise_result.value.version_number, promise_result.value.value])
+			} else if (promise_result.value.message_type == "KEY_NOT_FOUND"){
+				console.log(`DB SERVER - Raft node ${promise_result.value.sender} could not find a matching key`)
 			}
 		})
 
@@ -51,7 +51,7 @@ function send_read_to_raft_cluster_promises(key, RAFT_CLUSTER, CURRENT_NODE_ADDR
 		}).catch((error) => {
 			console.error(`send_read_to_raft_cluster_promises(): promise error while connecting to node ${error.address}:${error.port} at ${get_timestamp()}`, error)
 		})
-		read_promises.push(read_promise)		
+		read_promises.push(read_promise)
 	}
 
 	return read_promises
@@ -59,7 +59,7 @@ function send_read_to_raft_cluster_promises(key, RAFT_CLUSTER, CURRENT_NODE_ADDR
 }
 
 
-function send_read_request(RAFT_CLUSTER, CURRENT_NODE_ADDRESS, data_object, index){
+function send_read_request(key, RAFT_CLUSTER, CURRENT_NODE_ADDRESS, index){
 
 	let read_promise = new Promise((resolve, reject) => {
 
@@ -80,7 +80,7 @@ function send_read_request(RAFT_CLUSTER, CURRENT_NODE_ADDRESS, data_object, inde
 
 		client_socket.on("data", (server_response) => {
 			server_response = JSON.parse(server_response)
-			console.log(`send_read_request(): server_response received at ${get_timestamp()}\n`, server_response)
+			console.log(`send_read_request(): server_response received at ${get_timestamp()}`)
 
 			if (server_response.message_type == "KEY_FOUND"){
 
@@ -114,7 +114,7 @@ function send_read_request(RAFT_CLUSTER, CURRENT_NODE_ADDRESS, data_object, inde
 		})
 
 		client_socket.on("error", (error) => {
-			console.error(`send_read_request(): socket error error while connecting to node ${error.address}:${error.port} at ${get_timestamp()}`)
+			console.error(`send_read_request(): socket error error while connecting to node ${error.address}:${error.port} at ${get_timestamp()}\n`, error)
 			reject(error)
 		})
 	})

@@ -42,7 +42,7 @@ function read_from_hash_table(hash_table_file_descriptor, key, HASH_TABLE_CONSTA
 		}
 	}
 
-	return [key_found, value]
+	return [key_found, version_number, value]
 
 }
 
