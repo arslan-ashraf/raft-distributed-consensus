@@ -204,6 +204,9 @@ function find_address_of_writable_node_of_linked_list(hash_table_file_descriptor
 			} else {
 				address_of_current_data_point = Number(next_node_address)
 			}
+		} else {
+			console.log(`find_address_of_writable_node_of_linked_list(): unable to traverse or continue traversing linked list`)
+			break
 		}
 	}
 	return [address_of_writable_node, new_write_or_update, data_read]
