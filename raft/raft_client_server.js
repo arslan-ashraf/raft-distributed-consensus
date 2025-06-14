@@ -87,10 +87,11 @@ console.log(`parent of current working dir: ${path.dirname(process.cwd())}`)
 let data_point_size = 100 		// data that will be appended to the log is this size
 
 const RAFT_LOG_CONSTANTS = {
-	"log_index_size": 20,
-	"term_size": 10,
+	"log_index_size": 15,
+	"term_size": 5,
 	"key_size": 20,
-	"value_size": 49
+	"value_size": 49,
+	"live_status": 10
 }
 
 const log_file_path = path.join(process.cwd(), "raft-files", `${SERVER_PORT}-log.txt`)
@@ -193,11 +194,9 @@ server.on("connection", (server_socket) => {
 			if (LEADER_KNOWN == true && CURRENT_NODE_ADDRESS == LEADER_ADDRESS){
 				
 				console.log(`=======> WRITE_REQUEST_TO_LEADER coming to ${CURRENT_NODE_ADDRESS} who is a ${CURRENT_NODE_STATE} at ${get_timestamp()} <=======`)
-				// let _log_index = log.length > 0 ? log[log.length - 1].log_index : 0
-				// let data_object = { "log_index": _log_index, "term": term, "key": data.key, "value": data.value }
 
 				log_last_index += 1
-				let data_object = { "log_index": log_last_index, "term": term, "key": data.key, "value": data.value }
+				let data_object = { "log_index": log_last_index, "term": term, "key": data.key, "value": data.value, "request_type": data.request_type }
 
 				console.log(`%%%%%%%% leaders term: ${term} $$$$$$$$$$$`)
 				write_and_replicate_write_to_followers(
@@ -206,7 +205,7 @@ server.on("connection", (server_socket) => {
 					hash_table_file_descriptor, HASH_TABLE_CONSTANTS
 				)
 				
-			} else { // in case the current node is actually a follower
+			} else { // in case the write request is actually coming to a follower
 
 				payload.message_type = "REQUEST_REACHED_FOLLOWER"
 				payload.message = LEADER_ADDRESS

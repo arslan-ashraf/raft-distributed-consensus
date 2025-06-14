@@ -16,11 +16,12 @@ function handle_write_to_follower(
 	if (followers_log_last_index == (leaders_log_last_index - 1)){
 		console.log(`---- Log indexes match - ${CURRENT_NODE_STATE} ${CURRENT_NODE_ADDRESS} accepts the write from LEADER ${data.sender} at ${get_timestamp()} ----`)
 		
-		const data_to_write = { "log_index": data.log_index, "term": data.term,
-								"key": data.key, "value": data.value }
+		const data_to_write = { "log_index": data.log_index, "term": data.term, "key": data.key, 
+								"value": data.value, "request_type": data.request_type }
 
 		/////////////////// FOLLOWER APPENDS TO THE LOG HERE ////////////////////
-		const line_to_append = assemble_write(data_to_write, RAFT_LOG_CONSTANTS)								
+		const line_to_append = assemble_write(data_to_write, RAFT_LOG_CONSTANTS)
+
 		append_writes_to_log([line_to_append], log_file_path, RAFT_LOG_CONSTANTS)
 
 		/////////////////// FOLLOWER WRITES TO HASH TABLE HERE ////////////////////
@@ -120,6 +121,13 @@ function assemble_write(data_object, RAFT_LOG_CONSTANTS){
 	let _value_num_spaces = RAFT_LOG_CONSTANTS.value_size - _value.length
 	_value += " ".repeat(_value_num_spaces)
 
+	let _live_status;
+	if (data_object.request_type == "WRITE"){
+		_live_status = "PRESENT"
+	} else {
+
+	}
+
 	return _log_index + _term + _key + _value + "\n"
 }
 
@@ -127,10 +135,10 @@ function assemble_write(data_object, RAFT_LOG_CONSTANTS){
 function initialize_log_file(log_file_descriptor){
 
 	let log_initial_text = ` -------------------------------------------------------------------------------------------------
-| log_index 15 bytes | term 10 bytes | key 20 bytes | value 49 bytes | status 5 bytes | \\n 1 byte |
+| log_index 15 bytes | term 5 bytes | key 20 bytes | value 49 bytes | status 10 bytes | \\n 1 byte |
  -------------------------------------------------------------------------------------------------
 
-log_index 	   term		 key 				 value 											  status\n\n`
+log_index 	   term		 key 				 value 											  live_status\n\n`
 
 	let stats = fs.fstatSync(log_file_descriptor)
 	let file_size = String(stats.size)

@@ -11,6 +11,7 @@ const {
 
 let { get_log_index_and_term } = require("./read_end_of_log")
 
+
 // only the leader calls this function and CURRENT_NODE_ADDRESS is the leader's address
 async function write_and_replicate_write_to_followers(
 	PEERS, CURRENT_NODE_ADDRESS, data_object, QUORUM, server_socket, payload, 
@@ -19,7 +20,7 @@ async function write_and_replicate_write_to_followers(
 ){
 	
 	let write_successes = []
-	let write_promises = gather_write_promises(PEERS, CURRENT_NODE_ADDRESS, data_object)
+	let write_promises = write_to_all_followers_promises(PEERS, CURRENT_NODE_ADDRESS, data_object)
 
 	await Promise.allSettled(write_promises).then((all_promise_results) => {
 
@@ -86,16 +87,16 @@ async function write_and_replicate_write_to_followers(
 
 
 // only the leader calls this function (indirectly) and CURRENT_NODE_ADDRESS is the leader's address
-function gather_write_promises(PEERS, CURRENT_NODE_ADDRESS, data_object){
+function write_to_all_followers_promises(PEERS, CURRENT_NODE_ADDRESS, data_object){
 	
 	let write_promises = []
 
 	for(let i = 0; i < PEERS.length; i++){
-		let write_promise = replicate_write_helper(PEERS, CURRENT_NODE_ADDRESS, data_object, i)
+		let write_promise = replicate_write_to_follower_promise(PEERS, CURRENT_NODE_ADDRESS, data_object, i)
 		write_promise.then((promise_result) => {		// promise_result is the value passed to Promise's resolve() function
-			console.log(`gather_write_promises(): write_promise then() function, value of promise_result: ${promise_result} at ${get_timestamp()}`)
+			console.log(`write_to_all_followers_promises(): write_promise then() function, value of promise_result: ${promise_result} at ${get_timestamp()}`)
 		}).catch((error) => {
-			console.error(`gather_write_promises(): promise error while connecting to node ${error.address}:${error.port} at ${get_timestamp()}`)
+			console.error(`write_to_all_followers_promises(): promise error while connecting to node ${error.address}:${error.port} at ${get_timestamp()}`)
 		})
 		write_promises.push(write_promise)
 	}
@@ -105,7 +106,7 @@ function gather_write_promises(PEERS, CURRENT_NODE_ADDRESS, data_object){
 
 
 // only the leader calls this function (indirectly) and CURRENT_NODE_ADDRESS is the leader's address
-function replicate_write_helper(PEERS, CURRENT_NODE_ADDRESS, data_object, index){
+function replicate_write_to_follower_promise(PEERS, CURRENT_NODE_ADDRESS, data_object, index){
 
 	let write_promise = new Promise((resolve, reject) => {
 
@@ -115,27 +116,28 @@ function replicate_write_helper(PEERS, CURRENT_NODE_ADDRESS, data_object, index)
 		client_socket.on("timeout", () => { client_socket.destroy() })
 		
 		client_socket.connect(PEERS[index].PORT, PEERS[index].IP_ADDRESS, () => {
-			console.log(`replicate_write_helper(): connected to raft follower with address ${PEERS[index].IP_ADDRESS}:${PEERS[index].PORT} at ${get_timestamp()}`)
+			console.log(`replicate_write_to_follower_promise(): connected to raft follower with address ${PEERS[index].IP_ADDRESS}:${PEERS[index].PORT} at ${get_timestamp()}`)
 			const payload = { 
 				"sender": `${CURRENT_NODE_ADDRESS}`,
 				"message_type": "REPLICATE_WRITE_TO_FOLLOWER",
 				"term": data_object.term,
 				"log_index": data_object.log_index,
 				"key": data_object.key,
-				"value": data_object.value
+				"value": data_object.value,
+				"request_type": data_object.request_type
 			}
 			client_socket.write(JSON.stringify(payload))
 		})
 
 		client_socket.on("data", (server_response) => {
 			server_response = JSON.parse(server_response)
-			console.log(`replicate_write_helper(): server_response received at ${get_timestamp()}\n`, server_response)
+			console.log(`replicate_write_to_follower_promise(): server_response received at ${get_timestamp()}\n`, server_response)
 
 			if (server_response.message_type == "WRITE_SUCCESS_ON_FOLLOWER"){
-				console.log(`replicate_write_helper(): write succeeded!`)
+				console.log(`replicate_write_to_follower_promise(): write succeeded!`)
 				resolve("WRITE_SUCCESS_ON_FOLLOWER")
 			} else if (server_response.message_type == "WRITE_FAILURE_ON_FOLLOWER"){
-				console.log(`replicate_write_helper(): write failed!`)
+				console.log(`replicate_write_to_follower_promise(): write failed!`)
 				let rejection_response = { 
 					"sender": server_response.sender,
 					"message_type": server_response.message_type,
@@ -148,11 +150,11 @@ function replicate_write_helper(PEERS, CURRENT_NODE_ADDRESS, data_object, index)
 		})
 
 		client_socket.on("close", () => {
-			// console.log(`Step 7 - replicate_write_helper(): client socket has been closed`)
+			// console.log(`Step 7 - replicate_write_to_follower_promise(): client socket has been closed`)
 		})
 
 		client_socket.on("error", (error) => {
-			console.error(`replicate_write_helper(): socket error error while connecting to node ${error.address}:${error.port} at ${get_timestamp()}`)
+			console.error(`replicate_write_to_follower_promise(): socket error error while connecting to node ${error.address}:${error.port} at ${get_timestamp()}`)
 			reject(error)
 		})
 	})

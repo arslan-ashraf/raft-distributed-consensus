@@ -56,8 +56,10 @@ const database_server = http.createServer((request, response) => {
 				console.log(`Received JSON:`, json_data)
 				console.log(`==== LEADER_ADDRESS: ${LEADER_ADDRESS} ====`)
 
+				let request_type = "WRITE"
+
 				send_write_to_leader(
-					json_data, LEADER_ADDRESS, CURRENT_NODE_ADDRESS, response
+					json_data, LEADER_ADDRESS, CURRENT_NODE_ADDRESS, response, request_type
 				).catch((error) => {	// error here is the input to the Promise's reject() function
 						
 					let new_leader = error
@@ -69,7 +71,7 @@ const database_server = http.createServer((request, response) => {
 
 							console.log(`------> This should run after finding the new leader: ${LEADER_ADDRESS} at ${get_timestamp()}`)
 							if (LEADER_ADDRESS != null){
-								send_write_to_leader(json_data, LEADER_ADDRESS, CURRENT_NODE_ADDRESS, response)
+								send_write_to_leader(json_data, LEADER_ADDRESS, CURRENT_NODE_ADDRESS, response, request_type)
 							} else {
 								response.writeHead(400, { 'Content-Type': 'application/json' })
 								response.end(JSON.stringify({ error: 'Database Server - WRITE_FAILED' }))
@@ -79,7 +81,7 @@ const database_server = http.createServer((request, response) => {
 					} else {
 						console.log(`Promise rejected because leadership has changed and the new leader is ${new_leader}`)
 						LEADER_ADDRESS = new_leader
-						send_write_to_leader(json_data, LEADER_ADDRESS, CURRENT_NODE_ADDRESS, response)
+						send_write_to_leader(json_data, LEADER_ADDRESS, CURRENT_NODE_ADDRESS, response, request_type)
 					}
 				})
 

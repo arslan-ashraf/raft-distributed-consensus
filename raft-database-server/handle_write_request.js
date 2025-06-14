@@ -2,11 +2,11 @@ const net = require("net")
 const get_timestamp = require("../raft/get_timestamp")
 
 
-async function send_write_to_leader(json_data, LEADER_ADDRESS, CURRENT_NODE_ADDRESS, response){
+async function send_write_to_leader(json_data, LEADER_ADDRESS, CURRENT_NODE_ADDRESS, response, request_type){
 
 	let client_response_payload = { "sender": CURRENT_NODE_ADDRESS }
 	
-	let write_promise_response = await send_write_to_leader_helper(json_data, LEADER_ADDRESS, CURRENT_NODE_ADDRESS)
+	let write_promise_response = await send_write_to_leader_helper(json_data, LEADER_ADDRESS, CURRENT_NODE_ADDRESS, request_type)
 	console.log(`DB SERVER - send_write_to_leader(): write_promise_response at ${get_timestamp()}: ${write_promise_response}`)
 	client_response_payload["response"] = write_promise_response
 
@@ -18,7 +18,7 @@ async function send_write_to_leader(json_data, LEADER_ADDRESS, CURRENT_NODE_ADDR
 }
 
 
-function send_write_to_leader_helper(json_data, LEADER_ADDRESS, CURRENT_NODE_ADDRESS){
+function send_write_to_leader_helper(json_data, LEADER_ADDRESS, CURRENT_NODE_ADDRESS, request_type){
 
 	let LEADER_IP = LEADER_ADDRESS.substring(0, LEADER_ADDRESS.length - 5)
 	let LEADER_PORT = LEADER_ADDRESS.substring(LEADER_ADDRESS.length - 4)
@@ -32,11 +32,12 @@ function send_write_to_leader_helper(json_data, LEADER_ADDRESS, CURRENT_NODE_ADD
 			
 		client_socket.connect(LEADER_PORT, LEADER_IP, () => {
 			console.log(`DB SERVER - send_write_to_leader_helper(): sending write to raft leader ${LEADER_ADDRESS} at ${get_timestamp()}`)
-			const payload = { 
+			const payload = {
 				"sender": `${CURRENT_NODE_ADDRESS}`,
 				"message_type": "WRITE_REQUEST_TO_LEADER",
 				"key": json_data.key,
-				"value": json_data.value
+				"value": json_data.value || "",
+				"request_type": request_type
 			}
 			client_socket.write(JSON.stringify(payload))
 		})
@@ -53,8 +54,8 @@ function send_write_to_leader_helper(json_data, LEADER_ADDRESS, CURRENT_NODE_ADD
 					console.log(`DB SERVER - send_write_to_leader_helper(): sender doesn't know the leader, message from ${server_response.sender} at ${get_timestamp()}`)
 				}
 				reject(leader_address)
-			} else if (server_response.message_type == "WRITE_SUCCESS"){
-				resolve(`WRITE_SUCCESS`)
+			} else if (server_response.message_type == (`${request_type}_SUCCESS`)){
+				resolve(`${request_type}_SUCCESS`)
 			}
 
 			client_socket.destroy()

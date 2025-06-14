@@ -35,7 +35,7 @@ function read_from_hash_table(hash_table_file_descriptor, key, HASH_TABLE_CONSTA
 
 			let liveness_status = version_number_liveness_value[1]
 
-			if (liveness_status == "true"){
+			if (liveness_status == "PRESENT"){
 				version_number = version_number_liveness_value[0]
 				value = version_number_liveness_value[2]
 			}

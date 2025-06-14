@@ -142,7 +142,7 @@ function assemble_line_to_write(data_point, HASH_TABLE_CONSTANTS){
 	let version_number_num_blanks = HASH_TABLE_CONSTANTS.VERSION_NUMBER_SIZE - version_number.length
 	version_number += " ".repeat(version_number_num_blanks)
 
-	let live_status = "true"
+	let live_status = "PRESENT"
 	let live_status_num_blanks = HASH_TABLE_CONSTANTS.LIVE_STATUS_SIZE - live_status.length
 	live_status += " ".repeat(live_status_num_blanks)
 
