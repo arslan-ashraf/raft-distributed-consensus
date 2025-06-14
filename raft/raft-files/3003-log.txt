@@ -15,3 +15,5 @@ log_index			term	  key 				  value
 9                   3         key_9               value_9                                          
 10                  3         key_1               value_1000                                       
 11                  4         key_123456          abcdef                                           
+12                  4         key_7               sldkfjsfkl                                       
+13                  4         key_5               value of key 5                                   
