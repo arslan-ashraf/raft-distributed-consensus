@@ -38,6 +38,8 @@ function read_from_hash_table(hash_table_file_descriptor, key, HASH_TABLE_CONSTA
 			if (liveness_status == "PRESENT"){
 				version_number = version_number_liveness_value[0]
 				value = version_number_liveness_value[2]
+			} else if (liveness_status == "DELETED") {
+				key_found = false
 			}
 		}
 	}
