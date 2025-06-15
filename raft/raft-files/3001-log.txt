@@ -5,3 +5,15 @@
 log_index 	   term	key 				value 											 live_status
 
 1              1    key_1               value_1                                          PRESENT   
+2              1    key_2               value_2                                          PRESENT   
+3              1    key_3               value_3                                          PRESENT   
+4              1    key_4               value_4                                          PRESENT   
+5              1    key_5               value_5                                          PRESENT   
+6              1    key_1               value_1000                                       PRESENT   
+7              1    key_1                                                                DELETED   
+8              1    key_7                                                                DELETED   
+9              1    key_7098                                                             DELETED   
+10             1    key_6               value_6                                          PRESENT   
+11             1    key_4               value_4000                                       PRESENT   
+12             1    key_7               value_7                                          PRESENT   
+13             1    key_3                                                                DELETED   

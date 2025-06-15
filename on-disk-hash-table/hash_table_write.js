@@ -14,7 +14,7 @@ function write_to_hash_table(
 	for(let i = 0; i < lines_to_write.length; i++){
 
 		let data_point = parse_line_of_log(lines_to_write[i], RAFT_LOG_CONSTANTS)
-		console.log(`write_to_hash_table(): lines_to_write[i]: ${lines_to_write[i]}, data_point: ${data_point}`)
+
 		let line_to_write = assemble_line_to_write(data_point, HASH_TABLE_CONSTANTS)
 
 		console.log(`write_to_hash_table(): line_to_write: ${line_to_write}`)
@@ -29,7 +29,7 @@ function write_to_hash_table(
 		let is_hash_collision = hash_collision_cell_value[0]
 		console.log(`write_to_hash_table(): parsed data_point:\n`, data_point, `\nkey: ${key}, index_cell_position: ${index_cell_position}, is_hash_collision: ${is_hash_collision}`)
 
-		if (is_hash_collision == false){
+		if (is_hash_collision == false && data_point[4] == "PRESENT"){
 
 			let address_of_data_to_write = write_address_in_index_cell(
 				hash_table_file_descriptor, index_cell_position, HASH_TABLE_CONSTANTS
@@ -44,22 +44,22 @@ function write_to_hash_table(
 			let address_at_index_cell = Number(hash_collision_cell_value[1])
 			let address_new_write_or_update_data = find_address_of_writable_node_of_linked_list(hash_table_file_descriptor, address_at_index_cell, key, HASH_TABLE_CONSTANTS)
 			
-			let address_of_writable_node = address_new_write_or_update_data[0]
+			let address_of_node_to_write = address_new_write_or_update_data[0]
 			let new_write_or_update = address_new_write_or_update_data[1]
 			let existing_data_line = address_new_write_or_update_data[2]
 
 			if (new_write_or_update == "UPDATE"){
 
-				update_existing_data_point(hash_table_file_descriptor, line_to_write, existing_data_line, address_of_writable_node, HASH_TABLE_CONSTANTS)
+				update_existing_data_point(hash_table_file_descriptor, line_to_write, existing_data_line, address_of_node_to_write, HASH_TABLE_CONSTANTS)
 			
-			} else if (new_write_or_update == "NEW_WRITE"){
+			} else if (new_write_or_update == "NEW_WRITE" && data_point[4] == "PRESENT"){
 				
-				let address_of_latest_data_point = write_address_of_next_node(hash_table_file_descriptor, address_of_writable_node, HASH_TABLE_CONSTANTS)
+				let address_of_latest_data_point = write_address_of_next_node(hash_table_file_descriptor, address_of_node_to_write, HASH_TABLE_CONSTANTS)
 				write_data_in_hash_table(hash_table_file_descriptor, line_to_write, address_of_latest_data_point)
 				console.log(`write_to_hash_table(): address_of_latest_data_point: ${address_of_latest_data_point}`)
 
 			}
-			console.log(`write_to_hash_table(): address_of_writable_node: ${address_of_writable_node}`)
+			console.log(`write_to_hash_table(): address_of_node_to_write: ${address_of_node_to_write}`)
 
 		}
 		console.log("=".repeat(100))
