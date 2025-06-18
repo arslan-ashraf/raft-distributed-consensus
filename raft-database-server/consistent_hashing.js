@@ -40,11 +40,12 @@ class ConsistentHashing {
 		let key_hash = this.get_hash(key)
 		let cluster_index = this.binary_search(key_hash, true)
 		if (cluster_index > 0 && key_hash > this.sorted_hashes[cluster_index]){ cluster_index += 1 }
+		let cluster_hash = this.sorted_hashes[cluster_index]
+		let cluster_name = this.hash_to_name_map[cluster_hash]
 		console.log(`find_cluster(): key: ${key}, key_hash: ${key_hash}, cluster_index: ${cluster_index}`)
 		console.log(`find_cluster(): this.sorted_hashes[cluster_index]:`, this.sorted_hashes[cluster_index])
-		let cluster_hash = this.sorted_hashes[cluster_index]
 		console.log(`find_cluster(): cluster_hash: ${cluster_hash}, this.hash_to_name_map[cluster_hash]: ${this.hash_to_name_map[cluster_hash]}`)
-		let cluster_name = this.hash_to_name_map[cluster_hash]
+		console.log(`find_cluster(): cluster_name: ${cluster_name}`)
 		return cluster_name
 	}
 

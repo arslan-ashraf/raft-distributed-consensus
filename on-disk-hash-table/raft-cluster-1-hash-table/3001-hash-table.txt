@@ -12,3 +12,4 @@ verion_number 10 bytes | live_status 10 bytes | key 20 bytes | value 49 bytes | 
 ------------------------------------------------------------------------------------------------------
 
 1         PRESENT   key_8               value_8                                          null      
+2         PRESENT   key_10              value_10                                         null      

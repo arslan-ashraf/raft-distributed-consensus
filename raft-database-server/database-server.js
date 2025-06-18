@@ -86,7 +86,7 @@ const database_server = http.createServer((request, response) => {
 
 					let RAFT_CLUSTER = consistent_hash_ring.find_cluster(json_data.key)
 
-					console.log(`==== ${json_data.request_type} REQUEST - key: ${json_data.key} - key_hash: ${consistent_hash_ring.get_hash(key)}, to RAFT_CLUSTER: ${RAFT_CLUSTER} ====`)
+					console.log(`==== ${json_data.request_type} REQUEST to RAFT_CLUSTER: ${RAFT_CLUSTER} - key: ${json_data.key} - key_hash: ${consistent_hash_ring.get_hash(json_data.key)} ====`)
 
 					send_read_to_raft_cluster(json_data.key, ALL_RAFT_CLUSTERS[RAFT_CLUSTER], CURRENT_NODE_ADDRESS, response)
 
@@ -94,8 +94,8 @@ const database_server = http.createServer((request, response) => {
 
 					let RAFT_CLUSTER = consistent_hash_ring.find_cluster(json_data.key)
 					
-					console.log(`==== ${json_data.request_type} REQUEST - key: ${json_data.key} - key_hash: ${consistent_hash_ring.get_hash(json_data.key)}, to RAFT_CLUSTER: ${RAFT_CLUSTER} ====`)
-					console.log()
+					console.log(`==== ${json_data.request_type} REQUEST to RAFT_CLUSTER: ${RAFT_CLUSTER} - key: ${json_data.key} - key_hash: ${consistent_hash_ring.get_hash(json_data.key)} ====`)
+					
 					send_write_to_leader(
 						json_data, LEADER_ADDRESSES[RAFT_CLUSTER], CURRENT_NODE_ADDRESS, response
 					).catch((error) => {	// error here is the input to the Promise's reject() function

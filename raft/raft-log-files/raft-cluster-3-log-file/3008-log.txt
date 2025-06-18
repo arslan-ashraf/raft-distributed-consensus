@@ -15,3 +15,5 @@ log_index 	   term	key 				value 											 live_status
 9              1    key_1               value_1000                                       PRESENT   
 10             1    key_5               sldkfj fsk                                       PRESENT   
 11             1    key_3                                                                DELETED   
+12             1    key_3                                                                DELETED   
+13             1    key_5               sldkfj fsk lkfjsd                                PRESENT   
