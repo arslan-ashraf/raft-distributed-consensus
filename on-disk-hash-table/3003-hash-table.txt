@@ -11,7 +11,7 @@
 verion_number 10 bytes | live_status 10 bytes | key 20 bytes | value 49 bytes | pointer 10 | \n 1 byte
 ------------------------------------------------------------------------------------------------------
 
-7         DELETED   key_1                                                                931       
+14        PRESENT   key_1               abcd                                             931       
 2         PRESENT   key_2               value_2                                          null      
 13        DELETED   key_3                                                                1131      
 11        PRESENT   key_4               value_4000                                       null      
