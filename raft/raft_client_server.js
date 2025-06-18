@@ -90,7 +90,8 @@ const RAFT_LOG_CONSTANTS = {
 	"LIVE_STATUS_SIZE": 10
 }
 
-const log_file_path = path.join(process.cwd(), "raft-files", `${SERVER_PORT}-log.txt`)
+const cluster_number = Math.round(((SERVER_PORT + PEER1.PORT + PEER2.PORT) % 9000) / 6) - 1 || 1
+const log_file_path = path.join(process.cwd(), "raft-log-files", `raft-cluster-${String(cluster_number)}-log-file`, `${SERVER_PORT}-log.txt`)
 const log_file_descriptor = fs.openSync(log_file_path, "rs+")
 initialize_log_file(log_file_descriptor)
 
@@ -106,7 +107,12 @@ const HASH_TABLE_CONSTANTS = {
 	"NEXT_NODE_POINTER_SIZE": 10
 }
 
-const hash_table_file_path = path.join(path.dirname(process.cwd()), "on-disk-hash-table", `${SERVER_PORT}-hash-table.txt`)
+const hash_table_file_path = path.join(
+	path.dirname(process.cwd()), 
+	`on-disk-hash-table`, 
+	`raft-cluster-${String(cluster_number)}-hash-table`, 
+	`${SERVER_PORT}-hash-table.txt`
+)
 const hash_table_file_descriptor = fs.openSync(hash_table_file_path, "rs+")
 initialize_hash_table_file(hash_table_file_descriptor, HASH_TABLE_CONSTANTS)
 
@@ -305,9 +311,9 @@ if (CURRENT_NODE_STATE != "LEADER"){
 			LEADER_ADDRESS = handle_find_leader_results(all_promise_results)
 			
 			console.log("#".repeat(100))
-			console.log(`Step 9 - Raft server: all_promise_results after all promises have been resolved at ${get_timestamp()}`) 
-			console.log(`Step 10 - Raft server: every node agrees the leader is ${LEADER_ADDRESS} at ${get_timestamp()}`)
-			console.log(`Step 11 - Raft server: Current node address: ${CURRENT_NODE_ADDRESS} and current node state: ${CURRENT_NODE_STATE} at ${get_timestamp()}`)
+			console.log(`Raft server: all_promise_results after all promises have been resolved at ${get_timestamp()}`) 
+			console.log(`Raft server: every node agrees the leader is ${LEADER_ADDRESS} at ${get_timestamp()}`)
+			console.log(`Raft server: Current node address: ${CURRENT_NODE_ADDRESS} and current node state: ${CURRENT_NODE_STATE} at ${get_timestamp()}`)
 			console.log("#".repeat(100))
 			
 			let log_last_line = read_last_line(log_file_descriptor, data_point_size)
