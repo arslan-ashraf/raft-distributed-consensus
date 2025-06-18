@@ -150,7 +150,7 @@ log_index 	   term	key 				value 											 live_status\n\n`
 		let log_initial_text_buffer = Buffer.from(log_initial_text)
 		fs.writeSync(log_file_descriptor, log_initial_text_buffer, 0, log_initial_text_buffer.byteLength, file_size)
 	} else {
-		console.log(`-------------- LOG FILE ALREAD INITIALIZED ---------------`)
+		console.log(`-------------- LOG FILE ALREADY INITIALIZED ---------------`)
 	}
 
 }

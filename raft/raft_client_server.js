@@ -91,7 +91,14 @@ const RAFT_LOG_CONSTANTS = {
 }
 
 const cluster_number = Math.round(((SERVER_PORT + PEER1.PORT + PEER2.PORT) % 9000) / 6) - 1 || 1
-const log_file_path = path.join(process.cwd(), "raft-log-files", `raft-cluster-${String(cluster_number)}-log-file`, `${SERVER_PORT}-log.txt`)
+
+const log_file_path = path.join(
+	process.cwd(), 
+	`raft-log-files`, 
+	`raft-cluster-${String(cluster_number)}-log-file`, 
+	`${SERVER_PORT}-log.txt`
+)
+
 const log_file_descriptor = fs.openSync(log_file_path, "rs+")
 initialize_log_file(log_file_descriptor)
 

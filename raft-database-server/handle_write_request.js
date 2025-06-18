@@ -37,7 +37,7 @@ function send_write_to_leader_helper(json_data, LEADER_ADDRESS, CURRENT_NODE_ADD
 				"message_type": `WRITE_REQUEST_TO_LEADER`,
 				"key": json_data.key,
 				"value": json_data.value || "",
-				"request_type": json_data.method
+				"request_type": json_data.request_type
 			}
 			client_socket.write(JSON.stringify(payload))
 		})
@@ -54,8 +54,8 @@ function send_write_to_leader_helper(json_data, LEADER_ADDRESS, CURRENT_NODE_ADD
 					console.log(`DB SERVER - send_write_to_leader_helper(): sender doesn't know the leader, message from ${server_response.sender} at ${get_timestamp()}`)
 				}
 				reject(leader_address)
-			} else if (server_response.message_type == (`${json_data.method}_SUCCESS`)){
-				resolve(`${json_data.method}_SUCCESS`)
+			} else if (server_response.message_type == (`${json_data.request_type}_SUCCESS`)){
+				resolve(`${json_data.request_type}_SUCCESS`)
 			}
 
 			client_socket.destroy()

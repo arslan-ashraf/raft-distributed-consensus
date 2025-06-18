@@ -154,7 +154,7 @@ function replicate_write_to_follower_promise(PEERS, CURRENT_NODE_ADDRESS, data_o
 		})
 
 		client_socket.on("error", (error) => {
-			console.error(`replicate_write_to_follower_promise(): socket error error while connecting to node ${error.address}:${error.port} at ${get_timestamp()}`)
+			console.error(`replicate_write_to_follower_promise(): socket error at ${get_timestamp()} with error object:`, error)
 			reject(error)
 		})
 	})
